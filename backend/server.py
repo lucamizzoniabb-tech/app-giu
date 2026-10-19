@@ -265,7 +265,7 @@ async def update_gara(gid: str, body: GaraIn, u=Depends(require("ADMIN", "GIUDIC
 @api.delete("/gare/{gid}")
 async def delete_gara(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
     await gara_judge(gid, u)
-    for c in ("iscritti", "catture", "messaggi"):
+    for c in ("iscritti", "catture", "messaggi", "inviti"):
         await db[c].delete_many({"gara_id": gid})
     await db.gare.delete_one({"id": gid})
     await db.users.update_many({"gara_id": gid, "role": "ISPETTORE"}, {"$set": {"gara_id": None, "settore": None}})
@@ -291,6 +291,8 @@ async def create_user(body: UserIn, u=Depends(require("ADMIN"))):
 
 @api.post("/users/{uid}/approva")
 async def approva_user(uid: str, body: dict, u=Depends(require("ADMIN"))):
+    if not await db.users.find_one({"id": uid}):
+        raise HTTPException(404, "Utente non trovato")
     await db.users.update_one({"id": uid}, {"$set": {"approvato": bool(body.get("approvato", True))}})
     return {"ok": True}
 
@@ -444,10 +446,12 @@ async def do_sorteggio(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
 
 @api.post("/gare/{gid}/stato")
 async def set_stato(gid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE"))):
-    await gara_judge(gid, u)
+    g = await gara_judge(gid, u)
     stato = body.get("stato")
     if stato not in ("Iscrizioni Aperte", "Sorteggiata", "In Corso Live", "Conclusa"):
         raise HTTPException(400, "Stato non valido")
+    if g["stato"] == "Conclusa" and u["role"] != "ADMIN":
+        raise HTTPException(403, "Solo l'Admin può riaprire una gara conclusa")
     await db.gare.update_one({"id": gid}, {"$set": {"stato": stato}})
     return {"ok": True}
 
@@ -569,7 +573,7 @@ async def revoca_invito(iid: str, u=Depends(require("ADMIN", "GIUDICE"))):
 @api.post("/inviti/{iid}/{azione}")
 async def rispondi_invito(iid: str, azione: str, u=Depends(require("ISPETTORE"))):
     inv = await db.inviti.find_one({"id": iid, "ispettore_id": u["id"], "stato": "IN_ATTESA"}, NOID)
-    if not inv or azione not in ("accetta", "rifiuta"):
+    if not inv or azione not in ("accetta", "rifiuta") or not await db.gare.find_one({"id": inv["gara_id"]}):
         raise HTTPException(404, "Invito non valido")
     if azione == "rifiuta":
         await db.inviti.update_one({"id": iid}, {"$set": {"stato": "RIFIUTATO"}})

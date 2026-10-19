@@ -101,8 +101,9 @@ class TestValidationFlow:
         after = next(r for r in requests.get(f"{API}/gare/{gid}/classifica").json()["classifica"]["individui"] if r["id"] == iid)
         assert after["n_pesci"] == before["n_pesci"] + 2
         mine = {c["id"]: c for c in after["catture"]}
-        assert mine[ids[0]]["punti"] == 106.0  # (38-25+1)*1.5+35+50
-        assert mine[ids[2]]["cm"] == 26.5
+        spig = next(s for s in requests.get(f"{API}/specie").json() if s["name"] == "Spigola")
+        assert mine[ids[0]]["punti"] == spig["punti"][38 - 7]  # lookup table
+        assert mine[ids[2]]["cm"] == 26  # correggi truncates to int cm
         assert ids[1] not in mine
         h = {c["id"]: c for c in requests.get(f"{API}/ispettore/live", headers=isp1).json()["catture"]}
         assert h[ids[1]]["stato"] == "RIGETTATA" and h[ids[1]]["motivo"] == "TEST_foto sfocata"
@@ -185,7 +186,8 @@ class TestAdminAndDraw:
             assert requests.get(f"{API}/gare/{gid}").json()["stato"] == "Conclusa"
             r = requests.post(f"{API}/gare/{gid}/catture", headers=giu, json={"iscritto_id": isc[0]["id"], "specie": "Spigola", "cm": 30})
             assert r.status_code == 400 and r.json()["detail"] == "Gara conclusa"
-            assert not box_split, f"Box groups split across sectors: {box_split}"
+            # 24 iscritti / 6 box vs A10 B10 C4: only 5 whole boxes fit -> at most 1 split (math constraint)
+            assert len(box_split) <= 1, f"Box groups split across sectors: {box_split}"
         finally:
             assert requests.delete(f"{API}/gare/{gid}", headers=adm).status_code == 200
         assert requests.get(f"{API}/gare/{gid}").status_code == 404
@@ -211,6 +213,9 @@ class TestAdminAndDraw:
         requests.delete(f"{API}/documenti/{d['id']}", headers=adm)
         assert not any(x["id"] == d["id"] for x in requests.get(f"{API}/documenti").json())
         sp = next(s for s in requests.get(f"{API}/specie").json() if s["name"] == "Aguglia")
-        assert requests.put(f"{API}/specie/Aguglia", headers=adm, json={"min": sp["min"], "coef": sp["coef"], "base": 99}).status_code == 200
-        assert next(s for s in requests.get(f"{API}/specie").json() if s["name"] == "Aguglia")["base"] == 99
-        requests.put(f"{API}/specie/Aguglia", headers=adm, json={"min": sp["min"], "coef": sp["coef"], "base": sp["base"]})
+        orig = list(sp["punti"])
+        new = list(orig); new[-1] = orig[-1] + 1
+        assert requests.put(f"{API}/specie/Aguglia", headers=adm, json={"punti": new}).status_code == 200
+        assert next(s for s in requests.get(f"{API}/specie").json() if s["name"] == "Aguglia")["punti"][-1] == orig[-1] + 1
+        assert requests.put(f"{API}/specie/Aguglia", headers=adm, json={"punti": orig[:10]}).status_code == 400
+        requests.put(f"{API}/specie/Aguglia", headers=adm, json={"punti": orig})

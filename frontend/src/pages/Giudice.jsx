@@ -52,7 +52,7 @@ export default function Giudice() {
   return (
     <div className="min-h-screen">
       <TopBar />
-      <main className="mx-auto max-w-7xl px-4 py-6">
+      <main className="mx-auto max-w-6xl px-4 py-6">
         <Link to="/giudice" className="mb-3 inline-flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900" data-testid="back-to-gare"><ArrowLeft size={14} />Gare</Link>
         <div className="flex flex-wrap items-start gap-4">
           <div className="min-w-0 flex-1">

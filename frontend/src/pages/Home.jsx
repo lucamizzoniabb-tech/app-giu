@@ -6,7 +6,7 @@ import { get } from "@/lib/api";
 import { STATI, fmtDate, docUrl } from "@/lib/constants";
 
 const GaraRow = ({ g, i }) => (
-  <div className="card fade-up flex flex-col gap-3 p-4 transition-colors hover:border-slate-400 sm:flex-row sm:items-center" style={{ animationDelay: `${i * 40}ms` }} data-testid={`gara-card-${g.id}`}>
+  <div className="card fade-up flex flex-col gap-3 p-4 transition-colors hover:border-slate-400 sm:flex-row sm:items-center" style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }} data-testid={`gara-card-${g.id}`}>
     <div className="flex-1 min-w-0">
       <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
         <span className="chip border-[#0f3d56]/20 bg-[#0f3d56]/5 text-[#0f3d56]">{g.specialita}</span>

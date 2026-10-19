@@ -2,7 +2,13 @@ import { useState } from "react";
 import { Check, X, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { api, errMsg } from "@/lib/api";
-import { MISURA_STATO, fmtTime } from "@/lib/constants";
+import { MISURA_STATO, fmtTime, puntiPreview } from "@/lib/constants";
+
+const PuntiTag = ({ sp, cm }) => {
+  const p = puntiPreview(sp, cm);
+  if (!p) return null;
+  return <span className={`text-xs font-semibold ${p.sotto ? "text-red-600" : "text-emerald-700"}`}>{p.sotto ? "sotto misura · 0 pt" : `${p.p} pt`}</span>;
+};
 
 const Pending = ({ c, isc, specie, surf, onChange }) => {
   const [mode, setMode] = useState(null);
@@ -26,6 +32,7 @@ const Pending = ({ c, isc, specie, surf, onChange }) => {
         </div>
         <div className="text-right">
           <div className="font-display text-lg font-bold">{surf ? `${c.specie} ${c.cm} cm` : `${c.peso} g`}</div>
+          {surf && <PuntiTag sp={specie.find((s) => s.name === c.specie)} cm={c.cm} />}
           {surf && c.peso ? <div className="text-xs text-slate-500">{c.peso} g</div> : null}
         </div>
       </div>
@@ -73,7 +80,7 @@ export const Validazione = ({ catture, individui, specie, surf, locked, onChange
                   <td className="num text-xs">{fmtTime(c.created_at)}</td>
                   <td className="num">{c.settore}{map[c.iscritto_id]?.picchetto}</td>
                   <td>{map[c.iscritto_id]?.nome}</td>
-                  <td>{surf ? `${c.specie} ${c.cm} cm` : `${c.peso} g`}{c.corretta && <span className="text-xs text-slate-400"> (corr.)</span>}</td>
+                  <td>{surf ? `${c.specie} ${c.cm} cm` : `${c.peso} g`}{surf && <> · <PuntiTag sp={specie.find((s) => s.name === c.specie)} cm={c.cm} /></>}{c.corretta && <span className="text-xs text-slate-400"> (corr.)</span>}</td>
                   <td className="text-xs">{c.inviato_da}</td>
                   <td><span className={`chip ${MISURA_STATO[c.stato].c}`}>{MISURA_STATO[c.stato].t}</span>{c.motivo && <div className="text-xs text-red-600">{c.motivo}</div>}</td>
                 </tr>
