@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { MapPin, Calendar, FileText, Radio, ExternalLink } from "lucide-react";
 import { TopBar, StatoChip } from "@/components/TopBar";
 import { get } from "@/lib/api";
-import { STATI, fmtDate } from "@/lib/constants";
+import { STATI, fmtDate, docUrl } from "@/lib/constants";
 
 const GaraRow = ({ g, i }) => (
   <div className="card fade-up flex flex-col gap-3 p-4 transition-colors hover:border-slate-400 sm:flex-row sm:items-center" style={{ animationDelay: `${i * 40}ms` }} data-testid={`gara-card-${g.id}`}>
@@ -50,7 +50,7 @@ const Documenti = () => {
       </div>
       <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
         {list.map((d) => (
-          <a key={d.id} href={d.url} target="_blank" rel="noreferrer" data-testid={`doc-link-${d.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+          <a key={d.id} href={docUrl(d)} target="_blank" rel="noreferrer" data-testid={`doc-link-${d.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
             <FileText size={18} className="text-red-600" />
             <div className="flex-1"><div className="font-semibold">{d.titolo}</div><div className="text-xs text-slate-500">{d.specialita} · {d.anno}</div></div>
             <ExternalLink size={15} className="text-slate-400" />
@@ -67,7 +67,8 @@ export default function Home() {
   const [filtro, setFiltro] = useState("");
   useEffect(() => { get("/gare").then(setGare); }, []);
   const live = (gare || []).filter((g) => g.stato === "In Corso Live");
-  const list = (gare || []).filter((g) => !filtro || g.stato === filtro);
+  const list = (gare || []).filter((g) => !filtro || g.stato === filtro)
+    .sort((a, b) => (b.stato === "In Corso Live") - (a.stato === "In Corso Live") || a.data.localeCompare(b.data));
   return (
     <div className="min-h-screen bg-white">
       <TopBar />

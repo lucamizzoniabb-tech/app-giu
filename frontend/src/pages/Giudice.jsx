@@ -10,6 +10,7 @@ import { PesaLive } from "@/components/PesaLive";
 import { Validazione } from "@/components/Validazione";
 import { ClassificaView } from "@/components/ClassificaView";
 import { Chat } from "@/components/Chat";
+import { GiudiceIspettori } from "@/components/GiudiceIspettori";
 import { useAuth } from "@/context/AuthContext";
 import { api, errMsg, get, usePoll } from "@/lib/api";
 import { SPECIALITA, TIPI, fmtDate } from "@/lib/constants";
@@ -72,7 +73,7 @@ export default function Giudice() {
         </div>
         <Tabs value={tab} onValueChange={setTab} className="mt-6">
           <TabsList className="tabs-list">
-            {[["iscritti", "Iscritti"], ["campo", "Campo gara"], ["pesa", "Pesa Live"], ["validazione", "Validazione"], ["classifica", "Classifica"], ["chat", "Chat"]].map(([k, t]) => (
+            {[["iscritti", "Iscritti"], ["campo", "Campo gara"], ["ispettori", "Ispettori"], ["pesa", "Pesa Live"], ["validazione", "Validazione"], ["classifica", "Classifica"], ["chat", "Chat"]].map(([k, t]) => (
               <TabsTrigger key={k} value={k} className="tab-t" data-testid={`giudice-tab-${k}`}>
                 {t}{k === "validazione" && pending > 0 && <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-amber-500 px-1.5 text-[11px] text-white" data-testid="pending-count"><Bell size={10} />{pending}</span>}
               </TabsTrigger>
@@ -80,6 +81,7 @@ export default function Giudice() {
           </TabsList>
           <TabsContent value="iscritti" className="mt-5"><IscrittiPanel gara={g} onChange={reload} /></TabsContent>
           <TabsContent value="campo" className="mt-5"><CampoGara individui={classifica.individui} settori={g.settori} /></TabsContent>
+          <TabsContent value="ispettori" className="mt-5"><GiudiceIspettori gara={g} /></TabsContent>
           <TabsContent value="pesa" className="mt-5"><PesaLive gara={g} classifica={classifica} specie={specie} onChange={reload} /></TabsContent>
           <TabsContent value="validazione" className="mt-5"><Validazione catture={catture} individui={classifica.individui} specie={specie} surf={classifica.surf} locked={locked} onChange={reload} /></TabsContent>
           <TabsContent value="classifica" className="mt-5"><ClassificaView data={classifica} gara={g} exportable /></TabsContent>

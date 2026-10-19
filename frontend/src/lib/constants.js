@@ -31,8 +31,10 @@ export function puntiPreview(sp, cm) {
   if (!sp || cm === "" || cm == null) return null;
   const c = Number(cm);
   if (c < sp.min) return { p: 1, sotto: true };
-  return { p: Math.round(((c - sp.min + 1) * sp.coef + sp.base + 50) * 100) / 100, sotto: false };
+  return { p: Math.round((c - sp.min + 1) * sp.coef + sp.base) + 50, sotto: false };
 }
+
+export const docUrl = (d) => (d.storage_path ? `${process.env.REACT_APP_BACKEND_URL}/api/documenti/${d.id}/file` : d.url);
 
 export const fmt = (v) => Number(v || 0).toLocaleString("it-IT", { maximumFractionDigits: 2 });
 export const fmtDate = (d) => new Date(d).toLocaleDateString("it-IT", { day: "2-digit", month: "short", year: "numeric" });

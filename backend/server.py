@@ -10,7 +10,9 @@ from typing import Optional, List
 
 import bcrypt
 import jwt
-from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends
+from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadFile, File, Form
+from fastapi.responses import Response
+from storage import init_storage, put_object, get_object, APP_NAME
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
@@ -34,7 +36,7 @@ def make_token(uid):
 
 
 def public_user(u):
-    return {k: u.get(k) for k in ("id", "username", "role", "nome", "gara_id", "settore")}
+    return {**{k: u.get(k) for k in ("id", "username", "role", "nome", "gara_id", "settore")}, "approvato": u.get("approvato", True)}
 
 
 async def current_user(request: Request):
@@ -103,6 +105,17 @@ class LoginIn(BaseModel):
     password: str
 
 
+class RegisterIn(BaseModel):
+    username: str
+    password: str
+    nome: str
+
+
+class InvitoIn(BaseModel):
+    ispettore_id: str
+    settore: str
+
+
 class GaraIn(BaseModel):
     nome: str
     data: str
@@ -164,7 +177,7 @@ class DocIn(BaseModel):
     titolo: str
     anno: int
     specialita: str
-    url: str
+    url: str = ""
 
 
 class SpecieIn(BaseModel):
@@ -179,7 +192,21 @@ async def login(body: LoginIn):
     u = await db.users.find_one({"username": body.username.strip().lower()}, NOID)
     if not u or not verify_password(body.password, u["password_hash"]):
         raise HTTPException(401, "Credenziali non valide")
+    if not u.get("approvato", True):
+        raise HTTPException(403, "Account in attesa di approvazione dell'Admin")
     return {"token": make_token(u["id"]), "user": public_user(u)}
+
+
+@api.post("/auth/register")
+async def register(body: RegisterIn):
+    uname = body.username.strip().lower()
+    if len(uname) < 3 or len(body.password) < 6:
+        raise HTTPException(400, "Username min 3 caratteri, password min 6")
+    if await db.users.find_one({"username": uname}):
+        raise HTTPException(400, "Username già esistente")
+    await db.users.insert_one({"id": str(uuid.uuid4()), "username": uname, "password_hash": hash_password(body.password), "role": "ISPETTORE",
+                               "nome": body.nome.strip(), "gara_id": None, "settore": None, "approvato": False, "created_at": now()})
+    return {"ok": True}
 
 
 @api.get("/auth/me")
@@ -207,7 +234,7 @@ async def public_classifica(gid: str):
 
 @api.get("/documenti")
 async def documenti():
-    return await db.documenti.find({}, NOID).sort("anno", -1).to_list(500)
+    return await db.documenti.find({"is_deleted": {"$ne": True}}, NOID).sort([("anno", -1), ("titolo", 1)]).to_list(500)
 
 
 @api.get("/specie")
@@ -252,14 +279,20 @@ async def create_user(body: UserIn, u=Depends(require("ADMIN"))):
         raise HTTPException(400, "Password obbligatoria")
     if await db.users.find_one({"username": uname}):
         raise HTTPException(400, "Username già esistente")
-    doc = {**body.model_dump(exclude={"password"}), "username": uname, "id": str(uuid.uuid4()), "password_hash": hash_password(body.password), "created_at": now()}
+    doc = {**body.model_dump(exclude={"password", "gara_id", "settore"}), "gara_id": None, "settore": None, "approvato": True, "username": uname, "id": str(uuid.uuid4()), "password_hash": hash_password(body.password), "created_at": now()}
     await db.users.insert_one(doc)
     return public_user(doc)
 
 
+@api.post("/users/{uid}/approva")
+async def approva_user(uid: str, body: dict, u=Depends(require("ADMIN"))):
+    await db.users.update_one({"id": uid}, {"$set": {"approvato": bool(body.get("approvato", True))}})
+    return {"ok": True}
+
+
 @api.put("/users/{uid}")
 async def update_user(uid: str, body: UserIn, u=Depends(require("ADMIN"))):
-    upd = body.model_dump(exclude={"password", "username"})
+    upd = body.model_dump(exclude={"password", "username", "gara_id", "settore"})
     if body.password:
         upd["password_hash"] = hash_password(body.password)
     await db.users.update_one({"id": uid}, {"$set": upd})
@@ -282,15 +315,39 @@ async def add_doc(body: DocIn, u=Depends(require("ADMIN"))):
     return d
 
 
+@api.post("/documenti/upload")
+async def upload_doc(file: UploadFile = File(...), titolo: str = Form(...), anno: int = Form(...), specialita: str = Form(...), u=Depends(require("ADMIN"))):
+    if not (file.filename or "").lower().endswith(".pdf"):
+        raise HTTPException(400, "Solo file PDF")
+    data = await file.read()
+    if len(data) > 25 * 1024 * 1024:
+        raise HTTPException(400, "File troppo grande (max 25 MB)")
+    did = str(uuid.uuid4())
+    res = put_object(f"{APP_NAME}/documenti/{did}.pdf", data, "application/pdf")
+    d = {"id": did, "titolo": titolo, "anno": anno, "specialita": specialita, "url": "", "storage_path": res["path"], "filename": file.filename, "size": len(data), "created_at": now()}
+    await db.documenti.insert_one(dict(d))
+    d.pop("_id", None)
+    return d
+
+
+@api.get("/documenti/{did}/file")
+async def download_doc(did: str):
+    d = await db.documenti.find_one({"id": did, "is_deleted": {"$ne": True}}, NOID)
+    if not d or not d.get("storage_path"):
+        raise HTTPException(404, "File non trovato")
+    data, _ = get_object(d["storage_path"])
+    return Response(content=data, media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{d.get("filename", "documento.pdf")}"'})
+
+
 @api.put("/documenti/{did}")
 async def upd_doc(did: str, body: DocIn, u=Depends(require("ADMIN"))):
-    await db.documenti.update_one({"id": did}, {"$set": body.model_dump()})
+    await db.documenti.update_one({"id": did}, {"$set": body.model_dump(exclude={"url"} if not body.url else None)})
     return {"ok": True}
 
 
 @api.delete("/documenti/{did}")
 async def del_doc(did: str, u=Depends(require("ADMIN"))):
-    await db.documenti.delete_one({"id": did})
+    await db.documenti.update_one({"id": did}, {"$set": {"is_deleted": True}})
     return {"ok": True}
 
 
@@ -463,16 +520,68 @@ async def add_cattura(gid: str, body: CatturaIn, u=Depends(require("ADMIN", "GIU
     return c
 
 
+# ---------- inviti
+@api.get("/ispettori")
+async def list_ispettori(u=Depends(require("ADMIN", "GIUDICE"))):
+    return [public_user(x) for x in await db.users.find({"role": "ISPETTORE", "approvato": {"$ne": False}}, NOID).sort("username", 1).to_list(500)]
+
+
+@api.get("/gare/{gid}/inviti")
+async def list_inviti(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+    await gara_judge(gid, u)
+    return await db.inviti.find({"gara_id": gid, "stato": {"$ne": "REVOCATO"}}, NOID).sort("created_at", -1).to_list(500)
+
+
+@api.post("/gare/{gid}/inviti")
+async def crea_invito(gid: str, body: InvitoIn, u=Depends(require("ADMIN", "GIUDICE"))):
+    g = await gara_judge(gid, u)
+    isp = await db.users.find_one({"id": body.ispettore_id, "role": "ISPETTORE"}, NOID)
+    if not isp or not isp.get("approvato", True):
+        raise HTTPException(400, "Ispettore non approvato")
+    if await db.inviti.find_one({"gara_id": gid, "ispettore_id": isp["id"], "stato": {"$in": ["IN_ATTESA", "ACCETTATO"]}}):
+        raise HTTPException(400, "Ispettore già invitato a questa gara")
+    inv = {"id": str(uuid.uuid4()), "gara_id": gid, "gara_nome": g["nome"], "ispettore_id": isp["id"], "ispettore_username": isp["username"],
+           "ispettore_nome": isp.get("nome", ""), "settore": body.settore, "stato": "IN_ATTESA", "invitato_da": u["username"], "created_at": now()}
+    await db.inviti.insert_one(dict(inv))
+    return inv
+
+
+@api.delete("/inviti/{iid}")
+async def revoca_invito(iid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+    inv = await db.inviti.find_one({"id": iid}, NOID)
+    if not inv:
+        raise HTTPException(404, "Invito non trovato")
+    await gara_judge(inv["gara_id"], u)
+    await db.inviti.update_one({"id": iid}, {"$set": {"stato": "REVOCATO"}})
+    await db.users.update_one({"id": inv["ispettore_id"], "gara_id": inv["gara_id"]}, {"$set": {"gara_id": None, "settore": None}})
+    return {"ok": True}
+
+
+@api.post("/inviti/{iid}/{azione}")
+async def rispondi_invito(iid: str, azione: str, u=Depends(require("ISPETTORE"))):
+    inv = await db.inviti.find_one({"id": iid, "ispettore_id": u["id"], "stato": "IN_ATTESA"}, NOID)
+    if not inv or azione not in ("accetta", "rifiuta"):
+        raise HTTPException(404, "Invito non valido")
+    if azione == "rifiuta":
+        await db.inviti.update_one({"id": iid}, {"$set": {"stato": "RIFIUTATO"}})
+        return {"ok": True}
+    await db.inviti.update_many({"ispettore_id": u["id"], "stato": "ACCETTATO"}, {"$set": {"stato": "TERMINATO"}})
+    await db.inviti.update_one({"id": iid}, {"$set": {"stato": "ACCETTATO", "accettato_at": now()}})
+    await db.users.update_one({"id": u["id"]}, {"$set": {"gara_id": inv["gara_id"], "settore": inv["settore"]}})
+    return {"ok": True}
+
+
 # ---------- ispettore
 @api.get("/ispettore/live")
 async def isp_live(u=Depends(require("ISPETTORE"))):
+    inviti = await db.inviti.find({"ispettore_id": u["id"], "stato": "IN_ATTESA"}, NOID).to_list(50)
     if not u.get("gara_id"):
-        return {"gara": None}
+        return {"gara": None, "inviti": inviti}
     g = await get_gara(u["gara_id"])
     isc = await db.iscritti.find({"gara_id": g["id"], "settore": u["settore"]}, NOID).sort("picchetto", 1).to_list(200)
     cat = await db.catture.find({"gara_id": g["id"], "settore": u["settore"]}, NOID).sort("created_at", -1).to_list(2000)
     msgs = await db.messaggi.find({"gara_id": g["id"], "$or": [{"a": "ALL"}, {"a": u["username"]}, {"da": u["username"]}]}, NOID).sort("created_at", 1).to_list(1000)
-    return {"gara": await gara_summary(g), "settore": u["settore"], "iscritti": isc, "catture": cat, "messaggi": msgs}
+    return {"gara": await gara_summary(g), "settore": u["settore"], "iscritti": isc, "catture": cat, "messaggi": msgs, "inviti": inviti}
 
 
 # ---------- chat
@@ -503,6 +612,16 @@ async def startup():
     await db.iscritti.create_index("gara_id")
     await db.catture.create_index("gara_id")
     await seed(db, hash_password)
+    if await db.inviti.count_documents({}) == 0:
+        for isp in await db.users.find({"role": "ISPETTORE", "gara_id": {"$ne": None}}, NOID).to_list(100):
+            g = await db.gare.find_one({"id": isp["gara_id"]}, NOID)
+            await db.inviti.insert_one({"id": str(uuid.uuid4()), "gara_id": isp["gara_id"], "gara_nome": g["nome"] if g else "", "ispettore_id": isp["id"],
+                                        "ispettore_username": isp["username"], "ispettore_nome": isp.get("nome", ""), "settore": isp["settore"],
+                                        "stato": "ACCETTATO", "invitato_da": "giudice1", "created_at": now()})
+    try:
+        init_storage()
+    except Exception as e:
+        logging.error(f"Storage init failed: {e}")
 
 
 @app.on_event("shutdown")

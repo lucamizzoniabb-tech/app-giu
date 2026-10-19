@@ -116,11 +116,11 @@ def punti_cattura(c, specie_map, surf):
     sp = specie_map.get(c.get("specie"))
     cm = float(c.get("cm") or 0)
     if not sp:
-        return 1.0, None
+        return 1, None
     if cm < sp["min"]:
-        return 1.0, {"min": sp["min"], "base": 1, "bonus": 0, "sotto": True}
-    base = round((cm - sp["min"] + 1) * sp["coef"] + sp["base"], 2)
-    return round(base + 50, 2), {"min": sp["min"], "base": base, "bonus": 50, "sotto": False}
+        return 1, {"min": sp["min"], "base": 1, "bonus": 0, "sotto": True}
+    base = int(round((cm - sp["min"] + 1) * sp["coef"] + sp["base"]))
+    return base + 50, {"min": sp["min"], "base": base, "bonus": 50, "sotto": False}
 
 
 def build_classifica(gara, iscritti, catture, specie_map):

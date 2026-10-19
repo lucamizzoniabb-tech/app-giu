@@ -7,24 +7,25 @@ export const CampoGara = ({ individui, settori }) => {
       {zone.map((z) => (
         <div key={z}>
           <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">Zona {z}</div>
-          {[...new Set(individui.filter((i) => i.zona === z).map((i) => i.settore))].map((s) => (
-            <div key={s} className={`mb-3 rounded-lg border p-3 ${tecnico.has(s) ? "border-yellow-300 bg-yellow-50" : "border-slate-200"}`} data-testid={`campo-settore-${s}`}>
-              <div className="mb-2 font-display text-sm font-bold">SETTORE {s}{tecnico.has(s) && " TECNICO"}</div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-                {individui.filter((i) => i.settore === s).map((i) => (
-                  <div key={i.id} className="rounded-md border border-slate-200 bg-white p-2" style={i.colore ? { borderLeft: `5px solid ${i.colore}` } : undefined}>
-                    <div className="flex items-baseline justify-between">
-                      <span className="num text-xl font-bold">{i.picchetto}</span>
-                      {i.esterno && <span className="chip border-slate-300 text-slate-500">Est</span>}
-                    </div>
-                    <div className="truncate text-sm font-semibold">{i.nome}</div>
-                    <div className="truncate text-xs text-slate-500">{i.societa}</div>
-                    {i.gruppo && <div className="truncate text-xs text-slate-400">{i.gruppo}</div>}
-                  </div>
-                ))}
+          <div className="grid gap-4 lg:grid-cols-2">
+            {[...new Set(individui.filter((i) => i.zona === z).map((i) => i.settore))].map((s) => (
+              <div key={s} className="card overflow-hidden" data-testid={`campo-settore-${s}`}>
+                <div className={`px-3 py-2 font-display text-sm font-bold ${tecnico.has(s) ? "bg-yellow-300 text-yellow-950" : "bg-slate-50"}`}>SETTORE {s}{tecnico.has(s) && " TECNICO"}</div>
+                <ul className={`divide-y divide-slate-100 ${tecnico.has(s) ? "bg-yellow-50/60" : ""}`}>
+                  {individui.filter((i) => i.settore === s).map((i) => (
+                    <li key={i.id} className="flex items-center gap-3 px-3 py-2" style={i.colore ? { borderLeft: `5px solid ${i.colore}` } : undefined} data-testid={`campo-pic-${i.picchetto}`}>
+                      <span className="num w-9 shrink-0 text-center text-lg font-bold text-[#0f3d56]">{i.picchetto}</span>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate font-semibold">{i.nome}</div>
+                        <div className="truncate text-xs text-slate-500">{i.societa}{i.gruppo ? ` · ${i.gruppo}` : ""}</div>
+                      </div>
+                      {i.esterno && <span className="chip border-slate-300 text-slate-500">Esterno</span>}
+                    </li>
+                  ))}
+                </ul>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       ))}
     </div>

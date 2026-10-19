@@ -50,6 +50,28 @@ const MisuraForm = ({ gara, isc, specie, surf, onSent }) => {
   );
 };
 
+const Inviti = ({ inviti, onDone }) => {
+  if (!inviti?.length) return null;
+  const rispondi = async (id, azione) => {
+    try { await api.post(`/inviti/${id}/${azione}`); toast.success(azione === "accetta" ? "Invito accettato" : "Invito rifiutato"); onDone(); } catch (er) { toast.error(errMsg(er)); }
+  };
+  return (
+    <div className="mb-5 space-y-2" data-testid="isp-inviti">
+      {inviti.map((i) => (
+        <div key={i.id} className="card fade-up border-amber-300 p-4" data-testid={`isp-invito-${i.id}`}>
+          <div className="text-[11px] font-bold uppercase tracking-widest text-amber-700">Invito da {i.invitato_da}</div>
+          <div className="mt-1 font-bold">{i.gara_nome}</div>
+          <div className="text-sm text-slate-600">SETTORE {i.settore}</div>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button data-testid="isp-accetta-invito" onClick={() => rispondi(i.id, "accetta")} className="btn btn-success">Accetta</button>
+            <button data-testid="isp-rifiuta-invito" onClick={() => rispondi(i.id, "rifiuta")} className="btn btn-outline">Rifiuta</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+};
+
 export default function Ispettore() {
   const { user } = useAuth();
   const { data, reload } = usePoll(() => get("/ispettore/live"), 2500);
@@ -67,7 +89,10 @@ export default function Ispettore() {
   }, [data]);
 
   if (!data) return <><TopBar /><p className="p-10 text-sm text-slate-500">Caricamento…</p></>;
-  if (!data.gara) return <><TopBar /><p className="p-10 text-sm text-slate-500" data-testid="isp-no-gara">Nessuna gara assegnata.</p></>;
+  if (!data.gara) return (
+    <><TopBar /><main className="mx-auto max-w-2xl px-4 py-6"><Inviti inviti={data.inviti} onDone={reload} />
+      {!data.inviti?.length && <p className="text-sm text-slate-500" data-testid="isp-no-gara">Nessuna gara: attendi l'invito del giudice.</p>}</main></>
+  );
   const { gara: g, iscritti, catture, messaggi, settore } = data;
   const surf = g.specialita === "Surf Casting";
   const iscMap = Object.fromEntries(iscritti.map((i) => [i.id, i]));
@@ -78,6 +103,7 @@ export default function Ispettore() {
     <div className="min-h-screen">
       <TopBar />
       <main className="mx-auto max-w-2xl px-4 py-5">
+        <Inviti inviti={data.inviti} onDone={reload} />
         <div className="mb-4 flex items-center gap-3">
           <div className={`num grid h-14 w-14 place-items-center rounded-lg text-2xl font-bold ${tec ? "bg-yellow-300" : "bg-slate-900 text-white"}`} data-testid="isp-settore">{settore}</div>
           <div className="min-w-0"><div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Settore {settore}{tec && " tecnico"}</div><div className="truncate font-bold">{g.nome}</div></div>

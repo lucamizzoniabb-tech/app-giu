@@ -2,42 +2,51 @@ import { Crown, Download } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fmt, downloadCSV } from "@/lib/constants";
 
-const SettoreTable = ({ s }) => (
+const Pos = ({ n, first }) => (
+  <div className={`grid h-9 w-9 shrink-0 place-items-center rounded-md num text-sm font-bold ${first ? "bg-emerald-600 text-white" : "bg-slate-100 text-slate-700"}`}>
+    {first ? <Crown size={16} /> : n}
+  </div>
+);
+
+const Row = ({ first, n, title, sub, right, rightSub, badge, testid }) => (
+  <li className={`flex items-center gap-3 px-3 py-2.5 ${first ? "bg-emerald-50" : ""}`} data-testid={testid}>
+    <Pos n={n} first={first} />
+    {badge}
+    <div className="min-w-0 flex-1">
+      <div className="truncate font-semibold">{title}</div>
+      <div className="truncate text-xs text-slate-500">{sub}</div>
+    </div>
+    <div className="shrink-0 text-right">
+      <div className="num text-base font-bold">{right}</div>
+      <div className="text-[11px] text-slate-500">{rightSub}</div>
+    </div>
+  </li>
+);
+
+const Pic = ({ r }) => (
+  <span className="num w-9 shrink-0 text-center text-lg font-bold text-[#0f3d56]" style={r.colore ? { borderBottom: `3px solid ${r.colore}` } : undefined}>{r.picchetto}</span>
+);
+
+const SettoreList = ({ s }) => (
   <div className="card overflow-hidden" data-testid={`classifica-settore-${s.lettera}`}>
     <div className={`flex items-center justify-between px-3 py-2 ${s.tecnico ? "bg-yellow-300 text-yellow-950" : "bg-slate-50"}`}>
       <span className="font-display text-sm font-bold">SETTORE {s.lettera}{s.tecnico && " TECNICO"}</span>
       <span className="text-xs">{s.rows.length} concorrenti</span>
     </div>
-    <div className="overflow-x-auto">
-      <table className="tbl">
-        <thead><tr><th>Pos</th><th>Pic</th><th>Nome</th><th className="hidden sm:table-cell">Società</th><th className="hidden md:table-cell">Squadra</th><th>N.</th><th>Tot</th><th>Pen</th><th>Est</th></tr></thead>
-        <tbody>
-          {s.rows.map((r) => (
-            <tr key={r.id} className={r.pen === 1 && r.tot > 0 ? "bg-emerald-50" : ""}>
-              <td className="num font-bold">{r.pen === 1 && r.tot > 0 ? <Crown size={16} className="text-emerald-600" /> : r.pos}</td>
-              <td className="num">{r.picchetto}</td>
-              <td className="font-medium">{r.nome}<div className="text-xs text-slate-500 sm:hidden">{r.societa}</div></td>
-              <td className="hidden sm:table-cell text-slate-600">{r.societa}</td>
-              <td className="hidden md:table-cell text-slate-600">{r.gruppo || "—"}</td>
-              <td className="num">{r.n_pesci}</td>
-              <td className="num font-bold">{fmt(r.tot)}</td>
-              <td className="num">{r.pen}</td>
-              <td>{r.esterno ? <span className="chip border-slate-300 text-slate-600">E</span> : ""}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <ul className="divide-y divide-slate-100">
+      {s.rows.map((r) => (
+        <Row key={r.id} testid={`cls-row-${r.picchetto}`} first={r.pen === 1 && r.tot > 0} n={r.pos} badge={<Pic r={r} />} title={r.nome}
+          sub={`${r.societa}${r.gruppo ? ` · ${r.gruppo}` : ""} · ${r.n_pesci} pesci${r.esterno ? " · Esterno" : ""}`}
+          right={fmt(r.tot)} rightSub={`Pen ${r.pen}`} />
+      ))}
+    </ul>
   </div>
 );
 
-const Simple = ({ head, rows, testid }) => (
-  <div className="card overflow-x-auto" data-testid={testid}>
-    <table className="tbl">
-      <thead><tr>{head.map((h) => <th key={h}>{h}</th>)}</tr></thead>
-      <tbody>{rows.map((r, i) => <tr key={i} className={i === 0 ? "bg-emerald-50" : ""}>{r.map((c, j) => <td key={j} className={j === 0 ? "num font-bold" : ""}>{i === 0 && j === 0 ? <Crown size={16} className="text-emerald-600" /> : c}</td>)}</tr>)}</tbody>
-    </table>
-  </div>
+const List = ({ items, testid }) => (
+  <ul className="card divide-y divide-slate-100 overflow-hidden" data-testid={testid}>
+    {items.map((it, i) => <Row key={i} first={i === 0 && it.ok} n={i + 1} {...it} />)}
+  </ul>
 );
 
 export const ClassificaView = ({ data, gara, exportable }) => {
@@ -59,19 +68,16 @@ export const ClassificaView = ({ data, gara, exportable }) => {
         {exportable && <button data-testid="export-classifica-csv" onClick={exportCSV} className="btn btn-sm btn-outline mb-1"><Download size={14} />CSV</button>}
       </div>
       <TabsContent value="settori" className="mt-4 grid gap-4 lg:grid-cols-2">
-        {data.settori.map((s) => <SettoreTable key={s.lettera} s={s} />)}
+        {data.settori.map((s) => <SettoreList key={s.lettera} s={s} />)}
       </TabsContent>
       <TabsContent value="gruppi" className="mt-4">
-        <Simple testid="classifica-gruppi" head={["Pos", "Gruppo", "Società", "Componenti", "Pen", "Tot"]}
-          rows={data.gruppi.map((g, i) => [i + 1, g.gruppo, g.societa, g.membri.map((m) => `${m.nome} (${m.settore}${m.picchetto}·${m.pen})`).join(", "), g.pen, fmt(g.tot)])} />
+        <List testid="classifica-gruppi" items={data.gruppi.map((g) => ({ ok: g.tot > 0, title: g.gruppo, sub: `${g.societa} · ${g.membri.map((m) => `${m.nome} (${m.settore}${m.picchetto} · pen ${m.pen})`).join(", ")}`, right: `Pen ${g.pen}`, rightSub: fmt(g.tot) }))} />
       </TabsContent>
       <TabsContent value="societa" className="mt-4">
-        <Simple testid="classifica-societa" head={["Pos", "Società", "Migliori", "Pen", "Tot"]}
-          rows={data.societa.map((s, i) => [i + 1, s.societa, s.migliori.join(", "), s.pen, fmt(s.tot)])} />
+        <List testid="classifica-societa" items={data.societa.map((s) => ({ ok: s.tot > 0, title: s.societa, sub: s.migliori.join(", "), right: `Pen ${s.pen}`, rightSub: fmt(s.tot) }))} />
       </TabsContent>
       <TabsContent value="assoluta" className="mt-4">
-        <Simple testid="classifica-assoluta" head={["Pos", "Set", "Pic", "Nome", "Società", "N.", "Tot", "Pen"]}
-          rows={data.assoluta.map((r, i) => [i + 1, r.settore, r.picchetto, r.nome, r.societa, r.n_pesci, fmt(r.tot), r.pen])} />
+        <List testid="classifica-assoluta" items={data.assoluta.map((r) => ({ ok: r.tot > 0, badge: <span className="num w-10 shrink-0 text-center text-sm font-bold text-[#0f3d56]">{r.settore}{r.picchetto}</span>, title: r.nome, sub: `${r.societa} · ${r.n_pesci} pesci`, right: fmt(r.tot), rightSub: `Pen ${r.pen}` }))} />
       </TabsContent>
     </Tabs>
   );
