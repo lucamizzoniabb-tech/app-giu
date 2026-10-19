@@ -17,7 +17,7 @@ def login(u, p):
 
 
 @pytest.fixture(scope="session")
-def adm(): return login("admin", "admin123")
+def adm(): return login("mizzxbox@hotmail.it", "rosalba")
 @pytest.fixture(scope="session")
 def giu(): return login("giudice1", "giudice123")
 @pytest.fixture(scope="session")
@@ -34,7 +34,7 @@ def gare():
 # --- auth
 class TestAuth:
     def test_login_roles(self):
-        for u, p, role in [("admin", "admin123", "ADMIN"), ("giudice1", "giudice123", "GIUDICE"), ("ispettore1", "isp123", "ISPETTORE")]:
+        for u, p, role in [("mizzxbox@hotmail.it", "rosalba", "ADMIN"), ("giudice1", "giudice123", "GIUDICE"), ("ispettore1", "isp123", "ISPETTORE")]:
             r = requests.post(f"{API}/auth/login", json={"username": u, "password": p})
             assert r.status_code == 200 and r.json()["user"]["role"] == role
             assert "password_hash" not in r.json()["user"]

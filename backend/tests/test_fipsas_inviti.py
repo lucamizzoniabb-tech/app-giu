@@ -16,7 +16,7 @@ def login(u, p):
 
 
 @pytest.fixture(scope="module")
-def adm(): return login("admin", "admin123")
+def adm(): return login("mizzxbox@hotmail.it", "rosalba")
 @pytest.fixture(scope="module")
 def giu(): return login("giudice1", "giudice123")
 @pytest.fixture(scope="module")
