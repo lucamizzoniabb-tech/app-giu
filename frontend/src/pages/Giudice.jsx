@@ -72,9 +72,9 @@ export default function Giudice() {
           </div>
         </div>
         <Tabs value={tab} onValueChange={setTab} className="mt-6">
-          <TabsList className="tabs-list">
+          <TabsList className="tabs-list !bg-transparent">
             {[["iscritti", "Iscritti"], ["campo", "Campo gara"], ["ispettori", "Ispettori"], ["pesa", "Pesa Live"], ["validazione", "Validazione"], ["classifica", "Classifica"], ["chat", "Chat"]].map(([k, t]) => (
-              <TabsTrigger key={k} value={k} className="tab-t" data-testid={`giudice-tab-${k}`}>
+              <TabsTrigger key={k} value={k} className="tab-t data-[state=active]:!bg-transparent" data-testid={`giudice-tab-${k}`}>
                 {t}{k === "validazione" && pending > 0 && <span className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-amber-500 px-1.5 text-[11px] text-white" data-testid="pending-count"><Bell size={10} />{pending}</span>}
               </TabsTrigger>
             ))}

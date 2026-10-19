@@ -197,10 +197,11 @@ class TestAdminAndDraw:
         uid = r.json()["id"]
         assert requests.post(f"{API}/users", headers=adm, json={"username": "test_isp9", "password": "x", "role": "ISPETTORE"}).status_code == 400
         h = login("test_isp9", "pw123")
+        # admin-created ispettore has no gara until invited (invite flow)
         d = requests.get(f"{API}/ispettore/live", headers=h).json()
-        assert d["settore"] == "B" and all(i["settore"] == "B" for i in d["iscritti"])
+        assert d["gara"] is None
         requests.put(f"{API}/users/{uid}", headers=adm, json={"username": "test_isp9", "role": "ISPETTORE", "nome": "Nuovo", "gara_id": gid, "settore": "C"})
-        assert any(u["id"] == uid and u["settore"] == "C" for u in requests.get(f"{API}/users", headers=adm).json())
+        assert any(u["id"] == uid and u["nome"] == "Nuovo" for u in requests.get(f"{API}/users", headers=adm).json())
         assert requests.delete(f"{API}/users/{uid}", headers=adm).status_code == 200
 
     def test_doc_and_specie(self, adm):

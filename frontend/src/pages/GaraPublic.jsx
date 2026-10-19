@@ -31,9 +31,9 @@ export default function GaraPublic() {
           <span className="num text-slate-700">{g.n_iscritti}/{g.max_iscritti} iscritti{g.settori_preview ? ` => ${g.settori_preview}` : ""}</span>
         </div>
         <Tabs defaultValue={sp.get("tab") === "campo" ? "campo" : "classifica"} className="mt-8">
-          <TabsList className="tabs-list">
-            <TabsTrigger value="classifica" className="tab-t" data-testid="public-tab-classifica">Classifica Live</TabsTrigger>
-            <TabsTrigger value="campo" className="tab-t" data-testid="public-tab-campo">Campo gara</TabsTrigger>
+          <TabsList className="tabs-list !bg-transparent">
+            <TabsTrigger value="classifica" className="tab-t data-[state=active]:!bg-transparent" data-testid="public-tab-classifica">Classifica Live</TabsTrigger>
+            <TabsTrigger value="campo" className="tab-t data-[state=active]:!bg-transparent" data-testid="public-tab-campo">Campo gara</TabsTrigger>
           </TabsList>
           <TabsContent value="classifica" className="mt-5"><ClassificaView data={classifica} gara={g} exportable={g.stato === "Conclusa"} /></TabsContent>
           <TabsContent value="campo" className="mt-5"><CampoGara individui={classifica.individui} settori={g.settori} /></TabsContent>

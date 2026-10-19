@@ -35,11 +35,11 @@ export const AdminUtenti = () => {
     <div className="space-y-4">
       {pending.length > 0 && (
         <div className="card border-amber-300" data-testid="pending-users">
-          <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Ispettori in attesa di approvazione ({pending.length})</div>
+          <div className="border-b border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-900">Account in attesa di approvazione ({pending.length})</div>
           <ul className="divide-y divide-slate-100">
             {pending.map((u) => (
               <li key={u.id} className="flex items-center gap-3 px-3 py-2.5">
-                <div className="min-w-0 flex-1"><div className="font-semibold">{u.username}</div><div className="text-xs text-slate-500">{u.nome}</div></div>
+                <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><span className="font-semibold">{u.username}</span><span className="chip border-slate-300 text-slate-600">{u.role}</span></div><div className="text-xs text-slate-500">{u.nome}</div></div>
                 <button data-testid={`approva-${u.username}`} onClick={() => approva(u, true)} className="btn btn-sm btn-success"><Check size={14} />Approva</button>
                 <button data-testid={`rifiuta-${u.username}`} onClick={() => del(u)} className="btn btn-sm btn-ghost text-red-600"><Trash2 size={14} /></button>
               </li>
@@ -64,7 +64,7 @@ export const AdminUtenti = () => {
               <div className="flex items-center gap-2"><span className="font-semibold">{u.username}</span><span className="chip border-slate-300 text-slate-600">{u.role}</span></div>
               <div className="truncate text-xs text-slate-500">{u.nome} · {assegn(u)}</div>
             </div>
-            {u.role === "ISPETTORE" && <button data-testid={`sospendi-${u.username}`} onClick={() => approva(u, false)} className="btn btn-sm btn-ghost" aria-label="Sospendi" title="Sospendi"><Ban size={14} /></button>}
+            {u.role !== "ADMIN" && <button data-testid={`sospendi-${u.username}`} onClick={() => approva(u, false)} className="btn btn-sm btn-ghost" aria-label="Sospendi" title="Sospendi"><Ban size={14} /></button>}
             <button data-testid={`edit-user-${u.username}`} onClick={() => setF({ ...u, password: "" })} className="btn btn-sm btn-ghost" aria-label="Modifica"><Pencil size={14} /></button>
             <button data-testid={`del-user-${u.username}`} onClick={() => del(u)} className="btn btn-sm btn-ghost text-red-600" aria-label="Elimina"><Trash2 size={14} /></button>
           </li>

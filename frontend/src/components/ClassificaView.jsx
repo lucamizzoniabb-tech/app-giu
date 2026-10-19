@@ -59,11 +59,11 @@ export const ClassificaView = ({ data, gara, exportable }) => {
   return (
     <Tabs defaultValue="settori" className="w-full">
       <div className="flex items-end gap-2">
-        <TabsList className="tabs-list flex-1">
-          <TabsTrigger value="settori" className="tab-t" data-testid="cls-tab-settori">Settori</TabsTrigger>
-          {data.gruppi.length > 0 && <TabsTrigger value="gruppi" className="tab-t" data-testid="cls-tab-gruppi">Squadre/Box/Coppie</TabsTrigger>}
-          <TabsTrigger value="societa" className="tab-t" data-testid="cls-tab-societa">Società</TabsTrigger>
-          <TabsTrigger value="assoluta" className="tab-t" data-testid="cls-tab-assoluta">Assoluta</TabsTrigger>
+        <TabsList className="tabs-list !bg-transparent flex-1">
+          <TabsTrigger value="settori" className="tab-t data-[state=active]:!bg-transparent" data-testid="cls-tab-settori">Settori</TabsTrigger>
+          {data.gruppi.length > 0 && <TabsTrigger value="gruppi" className="tab-t data-[state=active]:!bg-transparent" data-testid="cls-tab-gruppi">Squadre/Box/Coppie</TabsTrigger>}
+          <TabsTrigger value="societa" className="tab-t data-[state=active]:!bg-transparent" data-testid="cls-tab-societa">Società</TabsTrigger>
+          <TabsTrigger value="assoluta" className="tab-t data-[state=active]:!bg-transparent" data-testid="cls-tab-assoluta">Assoluta</TabsTrigger>
         </TabsList>
         {exportable && <button data-testid="export-classifica-csv" onClick={exportCSV} className="btn btn-sm btn-outline mb-1"><Download size={14} />CSV</button>}
       </div>

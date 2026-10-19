@@ -109,6 +109,7 @@ class RegisterIn(BaseModel):
     username: str
     password: str
     nome: str
+    role: str = "ISPETTORE"
 
 
 class InvitoIn(BaseModel):
@@ -202,9 +203,11 @@ async def register(body: RegisterIn):
     uname = body.username.strip().lower()
     if len(uname) < 3 or len(body.password) < 6:
         raise HTTPException(400, "Username min 3 caratteri, password min 6")
+    if body.role not in ("GIUDICE", "ISPETTORE"):
+        raise HTTPException(400, "Ruolo non valido")
     if await db.users.find_one({"username": uname}):
         raise HTTPException(400, "Username già esistente")
-    await db.users.insert_one({"id": str(uuid.uuid4()), "username": uname, "password_hash": hash_password(body.password), "role": "ISPETTORE",
+    await db.users.insert_one({"id": str(uuid.uuid4()), "username": uname, "password_hash": hash_password(body.password), "role": body.role,
                                "nome": body.nome.strip(), "gara_id": None, "settore": None, "approvato": False, "created_at": now()})
     return {"ok": True}
 

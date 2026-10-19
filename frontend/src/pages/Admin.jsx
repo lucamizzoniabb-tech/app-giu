@@ -12,9 +12,9 @@ export default function Admin() {
       <main className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="text-3xl font-extrabold">Pannello Admin</h1>
         <Tabs defaultValue="gare" className="mt-6">
-          <TabsList className="tabs-list">
+          <TabsList className="tabs-list !bg-transparent">
             {[["gare", "Gare"], ["utenti", "Utenti"], ["documenti", "Documenti"], ["specie", "Specie"]].map(([k, t]) => (
-              <TabsTrigger key={k} value={k} className="tab-t" data-testid={`admin-tab-${k}`}>{t}</TabsTrigger>
+              <TabsTrigger key={k} value={k} className="tab-t data-[state=active]:!bg-transparent" data-testid={`admin-tab-${k}`}>{t}</TabsTrigger>
             ))}
           </TabsList>
           <TabsContent value="gare" className="mt-5"><AdminGare /></TabsContent>

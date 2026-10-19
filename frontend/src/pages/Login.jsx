@@ -8,7 +8,7 @@ export default function Login() {
   const { user, login } = useAuth();
   const nav = useNavigate();
   const [mode, setMode] = useState("login");
-  const [f, setF] = useState({ username: "", password: "", nome: "" });
+  const [f, setF] = useState({ username: "", password: "", nome: "", role: "ISPETTORE" });
   const [err, setErr] = useState("");
   const [ok, setOk] = useState("");
   const [busy, setBusy] = useState(false);
@@ -32,8 +32,16 @@ export default function Login() {
     <div className="min-h-screen">
       <TopBar />
       <main className="mx-auto max-w-sm px-4 py-16">
-        <h1 className="text-4xl font-extrabold">{reg ? "Registrazione Ispettore" : "Area Giudici"}</h1>
+        <h1 className="text-4xl font-extrabold">{reg ? "Registrazione" : "Area Giudici"}</h1>
         <form onSubmit={submit} className="mt-8 space-y-4">
+          {reg && (
+            <div><label className="lbl">Ruolo</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[["GIUDICE", "Giudice"], ["ISPETTORE", "Ispettore"]].map(([k, t]) => (
+                  <button type="button" key={k} data-testid={`register-role-${k.toLowerCase()}`} onClick={() => setF({ ...f, role: k })} className={`btn ${f.role === k ? "bg-slate-900 text-white" : "btn-outline"}`}>{t}</button>
+                ))}
+              </div></div>
+          )}
           {reg && <div><label className="lbl">Nome e cognome</label><input data-testid="register-nome-input" className="fld h-12" value={f.nome} onChange={set("nome")} required /></div>}
           <div><label className="lbl">Utente</label><input data-testid="login-username-input" autoCapitalize="none" autoComplete="username" className="fld h-12" value={f.username} onChange={set("username")} required /></div>
           <div><label className="lbl">Password</label><input data-testid="login-password-input" type="password" autoComplete={reg ? "new-password" : "current-password"} className="fld h-12" value={f.password} onChange={set("password")} required minLength={reg ? 6 : undefined} /></div>
@@ -42,7 +50,7 @@ export default function Login() {
           <button data-testid="login-submit-btn" disabled={busy} className="btn btn-lg btn-primary w-full">{busy ? "Attendere…" : reg ? "Registrati" : "Accedi"}</button>
         </form>
         <button data-testid="toggle-register-btn" onClick={() => { setMode(reg ? "login" : "register"); setErr(""); }} className="btn btn-ghost mt-4 w-full">
-          {reg ? "Hai già un account? Accedi" : "Sei un ispettore? Registrati"}
+          {reg ? "Hai già un account? Accedi" : "Giudice o ispettore? Registrati"}
         </button>
       </main>
     </div>
