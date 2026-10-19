@@ -1,0 +1,73 @@
+@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Public+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap');
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+    margin: 0;
+    font-family: "Public Sans", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    color: #0f172a;
+}
+
+h1, h2, h3, .font-display { font-family: "Bricolage Grotesque", sans-serif; letter-spacing: -0.02em; }
+.font-mono, .num { font-family: "JetBrains Mono", monospace; }
+
+@layer base {
+    :root {
+        --background: 0 0% 100%;
+        --foreground: 222 47% 11%;
+        --card: 0 0% 100%;
+        --card-foreground: 222 47% 11%;
+        --popover: 0 0% 100%;
+        --popover-foreground: 222 47% 11%;
+        --primary: 201 70% 20%;
+        --primary-foreground: 0 0% 98%;
+        --secondary: 210 40% 96%;
+        --secondary-foreground: 222 47% 11%;
+        --muted: 210 40% 96%;
+        --muted-foreground: 215 16% 47%;
+        --accent: 210 40% 96%;
+        --accent-foreground: 222 47% 11%;
+        --destructive: 0 72% 51%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 214 32% 91%;
+        --input: 214 32% 91%;
+        --ring: 201 70% 20%;
+        --radius: 0.5rem;
+    }
+}
+
+@layer base {
+    * { @apply border-border; }
+    body { @apply bg-background text-foreground; }
+    ::selection { background: #0f3d56; color: #fff; }
+}
+
+@layer components {
+    .fld { @apply h-11 w-full rounded-md border border-slate-300 bg-white px-3 text-[15px] outline-none transition-colors focus:border-[#0f3d56] focus:ring-2 focus:ring-[#0f3d56]/15; }
+    textarea.fld { @apply h-auto py-2; }
+    .lbl { @apply mb-1 block text-[11px] font-semibold uppercase tracking-wider text-slate-500; }
+    .btn { @apply inline-flex h-11 items-center justify-center gap-2 whitespace-nowrap rounded-md px-4 text-sm font-semibold transition-[background-color,transform,opacity,border-color] duration-150 active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50; }
+    .btn-sm { @apply h-9 px-3 text-xs; }
+    .btn-lg { @apply h-14 px-6 text-base; }
+    .btn-primary { @apply bg-[#0f3d56] text-white hover:bg-[#0a2c3f]; }
+    .btn-outline { @apply border border-slate-300 bg-white text-slate-900 hover:border-slate-900; }
+    .btn-ghost { @apply text-slate-600 hover:bg-slate-100 hover:text-slate-900; }
+    .btn-danger { @apply bg-red-600 text-white hover:bg-red-700; }
+    .btn-success { @apply bg-emerald-600 text-white hover:bg-emerald-700; }
+    .card { @apply rounded-lg border border-slate-200 bg-white; }
+    .chip { @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide; }
+    .tbl { @apply w-full text-sm; }
+    .tbl th { @apply border-b border-slate-200 px-2 py-2 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500; }
+    .tbl td { @apply border-b border-slate-100 px-2 py-2 align-middle; }
+    .tabs-list { @apply h-auto w-full justify-start gap-1 overflow-x-auto rounded-none border-b border-slate-200 bg-transparent p-0; }
+    .tab-t { @apply rounded-none border-b-2 border-transparent px-3 py-2.5 text-sm font-semibold text-slate-500 data-[state=active]:border-[#0f3d56] data-[state=active]:text-slate-900 data-[state=active]:shadow-none; }
+}
+
+.fade-up { animation: fadeUp .45s ease both; }
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.live-dot { width: 8px; height: 8px; border-radius: 9999px; background: #dc2626; animation: pulse 1.4s infinite; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(220,38,38,.6); } 70% { box-shadow: 0 0 0 8px rgba(220,38,38,0); } 100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); } }
+input[type=number]::-webkit-inner-spin-button { opacity: .4; }
