@@ -2,12 +2,14 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { api, errMsg } from "@/lib/api";
-import { fmt } from "@/lib/constants";
+import { fmt, MISURA_STATO, puntiPreview } from "@/lib/constants";
 
 const AddForm = ({ gara, iscritto, specie, surf, onDone }) => {
   const [sp, setSp] = useState("");
   const [cm, setCm] = useState("");
   const [peso, setPeso] = useState("");
+  const spObj = specie.find((s) => s.name === sp);
+  const prev = surf ? puntiPreview(spObj, cm, gara) : null;
   const submit = async (e) => {
     e.preventDefault();
     try {
@@ -29,11 +31,12 @@ const AddForm = ({ gara, iscritto, specie, surf, onDone }) => {
       {surf && <input required data-testid={`pesa-cm-${iscritto.picchetto}`} className="fld h-10 w-20" type="number" step="1" min="0" inputMode="numeric" placeholder="cm" value={cm} onChange={(e) => setCm(e.target.value)} />}
       {!surf && <input required data-testid={`pesa-peso-${iscritto.picchetto}`} className="fld h-10 w-24" type="number" step="1" min="0" inputMode="numeric" placeholder="peso g" value={peso} onChange={(e) => setPeso(e.target.value)} />}
       <button data-testid={`pesa-add-${iscritto.picchetto}`} className="btn btn-primary h-10 px-3" aria-label="Aggiungi"><Plus size={16} /></button>
+      {prev && <div data-testid={`pesa-preview-${iscritto.picchetto}`} className={`w-full text-xs font-semibold ${prev.sotto ? "text-red-600" : "text-emerald-700"}`}>{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · preda tecnica ${prev.p} pt` : `${prev.p} punti`}</div>}
     </form>
   );
 };
 
-const Card = ({ r, gara, specie, surf, locked, onChange }) => {
+export const Card = ({ r, gara, specie, surf, locked, onChange, isp }) => {
   const del = async (id) => {
     try { await api.delete(`/catture/${id}`); onChange(); } catch (er) { toast.error(errMsg(er)); }
   };
@@ -64,13 +67,13 @@ const Card = ({ r, gara, specie, surf, locked, onChange }) => {
                 ) : (
                   <><td>Pesata</td><td className="num font-bold">{fmt(c.peso)} g</td></>
                 )}
-                <td className="text-right">{!locked && <button data-testid={`pesa-del-${c.id}`} onClick={() => del(c.id)} className="text-slate-400 hover:text-red-600" aria-label="Elimina"><Trash2 size={14} /></button>}</td>
+                <td className="text-right">{c.stato && c.stato !== "APPROVATA" ? <span title={c.motivo || ""} className={`chip ${MISURA_STATO[c.stato].c}`}>{MISURA_STATO[c.stato].t}</span> : !locked && !isp && <button data-testid={`pesa-del-${c.id}`} onClick={() => del(c.id)} className="text-slate-400 hover:text-red-600" aria-label="Elimina"><Trash2 size={14} /></button>}</td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
-      {!locked && <AddForm gara={gara} iscritto={r} specie={specie} surf={surf} onDone={onChange} />}
+      {!locked && <AddForm gara={gara} iscritto={r} specie={specie} surf={surf} onDone={() => { if (isp) toast.success(`Misura inviata · Pic ${r.picchetto}`); onChange(); }} />}
     </div>
   );
 };

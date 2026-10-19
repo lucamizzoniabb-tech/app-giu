@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from "react";
-import { Send, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -9,49 +8,8 @@ import { ListaPrede } from "@/components/ListaPrede";
 import { ClassificaView } from "@/components/ClassificaView";
 import { useAuth } from "@/context/AuthContext";
 import { api, errMsg, get, usePoll } from "@/lib/api";
-import { MISURA_STATO, puntiPreview, fmt, fmtTime } from "@/lib/constants";
-
-const MisuraForm = ({ gara, isc, specie, surf, onSent }) => {
-  const [sp, setSp] = useState("");
-  const [cm, setCm] = useState("");
-  const [peso, setPeso] = useState("");
-  const [busy, setBusy] = useState(false);
-  const spObj = specie.find((s) => s.name === sp);
-  const prev = surf ? puntiPreview(spObj, cm, gara) : null;
-  const send = async (e) => {
-    e.preventDefault();
-    setBusy(true);
-    try {
-      await api.post(`/gare/${gara.id}/catture`, { iscritto_id: isc.id, specie: surf ? sp : "Pesata", cm: surf ? Number(cm) : null, peso: peso !== "" ? Number(peso) : null });
-      toast.success(`Misura inviata · Pic ${isc.picchetto}`);
-      setCm(""); setPeso("");
-      onSent();
-    } catch (er) { toast.error(errMsg(er)); }
-    setBusy(false);
-  };
-  return (
-    <form onSubmit={send} className="card fade-up space-y-3 p-4" data-testid="misura-form">
-      <div className="flex items-baseline gap-3"><span className="num text-4xl font-bold">{isc.picchetto}</span><span className="text-lg font-semibold">{isc.nome} {isc.cognome}</span></div>
-      {surf && (
-        <div><span className="lbl">Specie</span>
-          <select data-testid="isp-specie-select" required className="fld h-14 text-base" value={sp} onChange={(e) => setSp(e.target.value)}>
-            <option value="">Seleziona specie</option>
-            {specie.map((s) => <option key={s.name} value={s.name}>{s.name} — min {s.min} cm</option>)}
-          </select></div>
-      )}
-      <div className="grid grid-cols-2 gap-3">
-        {surf && <div><span className="lbl">Misura cm</span><input data-testid="isp-cm-input" required type="number" step="1" min="0" inputMode="numeric" className="fld num h-14 text-2xl" value={cm} onChange={(e) => setCm(e.target.value)} /></div>}
-        <div className={surf ? "" : "col-span-2"}><span className="lbl">Peso g {surf && "(facolt., non conta)"}</span><input data-testid="isp-peso-input" required={!surf} type="number" step="1" min="0" inputMode="numeric" className="fld num h-14 text-2xl" value={peso} onChange={(e) => setPeso(e.target.value)} /></div>
-      </div>
-      {prev && (
-        <div data-testid="isp-preview" className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${prev.sotto ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>
-          {prev.sotto && <AlertTriangle size={16} />}{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · preda tecnica ${prev.p} punti` : `${fmt(prev.p)} punti`}
-        </div>
-      )}
-      <button data-testid="isp-send-btn" disabled={busy || gara.stato === "Conclusa"} className="btn btn-lg btn-primary w-full"><Send size={18} />Invia misura</button>
-    </form>
-  );
-};
+import { MISURA_STATO, puntiPreview, fmtTime } from "@/lib/constants";
+import { Card } from "@/components/PesaLive";
 
 const LiveCls = ({ garaId, render }) => {
   const { data } = usePoll(() => get(`/gare/${garaId}/classifica`), 3000, garaId);
@@ -84,7 +42,6 @@ export default function Ispettore() {
   const { user } = useAuth();
   const { data, reload } = usePoll(() => get("/ispettore/live"), 2500);
   const [specie, setSpecie] = useState([]);
-  const [sel, setSel] = useState(null);
   const prevStati = useRef(null);
   useEffect(() => { get("/specie").then(setSpecie); }, []);
   useEffect(() => {
@@ -104,7 +61,15 @@ export default function Ispettore() {
   const { gara: g, iscritti, catture, messaggi, settore } = data;
   const surf = g.specialita === "Surf Casting";
   const iscMap = Object.fromEntries(iscritti.map((i) => [i.id, i]));
-  const selIsc = iscritti.find((i) => i.id === sel);
+  const rows = iscritti.map((i) => {
+    const cs = catture.filter((c) => c.iscritto_id === i.id).map((c) => {
+      const pv = surf ? puntiPreview(specie.find((x) => x.name === c.specie), c.cm, g) : null;
+      return { ...c, punti: surf ? pv?.p ?? 0 : Number(c.peso || 0), dettaglio: pv ? { sotto: pv.sotto, tabella: pv.tab, bonus: pv.bonus } : null };
+    });
+    const ok = cs.filter((c) => c.stato === "APPROVATA");
+    return { id: i.id, picchetto: i.picchetto, nome: `${i.nome} ${i.cognome}`, settore: i.settore, societa: i.societa, gruppo: i.gruppo, colore: i.colore,
+      catture: cs, n_pesci: ok.length, tot: ok.reduce((t, c) => t + c.punti, 0) };
+  });
   const tec = g.settori?.find((s) => s.lettera === settore)?.tecnico;
 
   return (
@@ -126,15 +91,8 @@ export default function Ispettore() {
             <TabsTrigger value="prede" className="tab-t data-[state=active]:!bg-transparent" data-testid="isp-tab-prede">Prede</TabsTrigger>
             <TabsTrigger value="chat" className="tab-t data-[state=active]:!bg-transparent" data-testid="isp-tab-chat">Chat</TabsTrigger>
           </TabsList>
-          <TabsContent value="misure" className="mt-4 space-y-4">
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-              {iscritti.map((i) => (
-                <button key={i.id} data-testid={`isp-pic-${i.picchetto}`} onClick={() => setSel(i.id)} className={`rounded-lg border p-2 text-left transition-colors ${sel === i.id ? "border-slate-900 bg-slate-900 text-white" : "border-slate-200 hover:border-slate-500"}`}>
-                  <div className="num text-xl font-bold">{i.picchetto}</div><div className="truncate text-[11px]">{i.cognome}</div>
-                </button>
-              ))}
-            </div>
-            {selIsc && <MisuraForm key={selIsc.id} gara={g} isc={selIsc} specie={specie} surf={surf} onSent={reload} />}
+          <TabsContent value="misure" className="mt-4 grid gap-3">
+            {rows.map((r) => <Card key={r.id} r={r} gara={g} specie={specie} surf={surf} locked={g.stato === "Conclusa"} onChange={reload} isp />)}
           </TabsContent>
           <TabsContent value="storico" className="mt-4 space-y-2" data-testid="isp-storico">
             {catture.map((c) => (

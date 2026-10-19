@@ -1,1 +1,63 @@
-<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="0" skipped="0" tests="24" time="117.179" timestamp="2026-10-19T23:17:40.543204+00:00" hostname="agent-env-3a19d642-3ef7-455f-9eb7-63202e4a9418"><testcase classname="tests.test_fipsas_api.TestAuth" name="test_login_roles" time="4.302" /><testcase classname="tests.test_fipsas_api.TestAuth" name="test_wrong_password" time="0.127" /><testcase classname="tests.test_fipsas_api.TestAuth" name="test_me_and_unauth" time="37.937" /><testcase classname="tests.test_fipsas_api.TestValidationFlow" name="test_isp_live_only_own_sector" time="0.532" /><testcase classname="tests.test_fipsas_api.TestValidationFlow" name="test_isp_cannot_send_other_sector" time="0.497" /><testcase classname="tests.test_fipsas_api.TestValidationFlow" name="test_send_approve_reject_correct" time="2.365" /><testcase classname="tests.test_fipsas_api.TestPublic" name="test_gare_list" time="0.000" /><testcase classname="tests.test_fipsas_api.TestPublic" name="test_classifica_docs_specie" time="0.626" /><testcase classname="tests.test_fipsas_inviti.TestRegistrationInvite" name="test_full_flow" time="4.303" /><testcase classname="tests.test_fipsas_inviti.TestRegistrationInvite" name="test_pending_seed_user_blocked" time="0.386" /><testcase classname="tests.test_fipsas_surf_points.TestPublic" name="test_gare_list_and_demo" time="0.343" /><testcase classname="tests.test_fipsas_surf_points.TestPublic" name="test_classifica_structure" time="0.154" /><testcase classname="tests.test_fipsas_surf_points.TestSpecie" name="test_52_species_77_values" time="0.123" /><testcase classname="tests.test_fipsas_surf_points.TestSpecie" name="test_put_specie_validation" time="0.611" /><testcase classname="tests.test_fipsas_api.TestChat" name="test_chat_targeting" time="1.598" /><testcase classname="tests.test_fipsas_inviti.TestSurfValidation" name="test_measure_flow_integer_points" time="2.700" /><testcase classname="tests.test_fipsas_inviti.TestDocsUpload" name="test_upload_download" time="1.882" /><testcase classname="tests.test_fipsas_inviti.TestAccess" name="test_isp_cannot_judge" time="0.616" /><testcase classname="tests.test_fipsas_surf_points.TestSurfPoints" name="test_points_match_table" time="3.843" /><testcase classname="tests.test_fipsas_surf_points.TestGiudiceGara" name="test_lifecycle" time="2.368" /><testcase classname="tests.test_fipsas_api.TestAdminAndDraw" name="test_access_control" time="68.655" /><testcase classname="tests.test_fipsas_api.TestAdminAndDraw" name="test_gara_crud_draw_close" time="41.559" /><testcase classname="tests.test_fipsas_api.TestAdminAndDraw" name="test_user_crud" time="1.395" /><testcase classname="tests.test_fipsas_api.TestAdminAndDraw" name="test_doc_and_specie" time="5.226" /></testsuite></testsuites>
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="8" failures="2" skipped="0" tests="33" time="19.750" timestamp="2026-10-19T23:40:00.690340+00:00" hostname="agent-env-3a19d642-3ef7-455f-9eb7-63202e4a9418"><testcase classname="tests.test_fipsas_bonus_timer.TestGaraFields" name="test_giudice_create_surf_with_bonus" time="0.910" /><testcase classname="tests.test_fipsas_api.TestAdminAndDraw" name="test_access_control" time="0.745"><failure message="KeyError: 'Trout Area Lazio Open'">test_fipsas_api.py:134: in test_access_control
+    r = requests.get(f"{API}/gare/{gare['Trout Area Lazio Open']['id']}/iscritti", headers=giu)
+                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   KeyError: 'Trout Area Lazio Open'</failure></testcase><testcase classname="tests.test_fipsas_bonus_timer.TestGaraFields" name="test_default_values" time="0.546" /><testcase classname="tests.test_fipsas_api.TestAdminAndDraw" name="test_gara_crud_draw_close" time="5.399" /><testcase classname="tests.test_fipsas_bonus_timer.TestGaraFields" name="test_admin_create_and_put_keeps" time="1.131" /><testcase classname="tests.test_fipsas_bonus_timer.TestGaraFields" name="test_patch_fields" time="0.440" /><testcase classname="tests.test_fipsas_bonus_timer.TestGaraFields" name="test_patch_forbidden_for_ispettore" time="0.660" /><testcase classname="tests.test_fipsas_api.TestAuth" name="test_login_roles" time="1.161"><failure message="assert (401 == 200)&#10; +  where 401 = &lt;Response [401]&gt;.status_code">test_fipsas_api.py:39: in test_login_roles
+    assert r.status_code == 200 and r.json()["user"]["role"] == role
+E   assert (401 == 200)
+E    +  where 401 = &lt;Response [401]&gt;.status_code</failure></testcase><testcase classname="tests.test_fipsas_api.TestAuth" name="test_wrong_password" time="0.181" /><testcase classname="tests.test_fipsas_api.TestAuth" name="test_me_and_unauth" time="0.755" /><testcase classname="tests.test_fipsas_api.TestAdminAndDraw" name="test_user_crud" time="1.696" /><testcase classname="tests.test_fipsas_api.TestValidationFlow" name="test_isp_live_only_own_sector" time="0.353"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Credenziali non valide&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">test_fipsas_api.py:24: in isp1
+    def isp1(): return login("ispettore1", "isp123")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_fipsas_api.py:15: in login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Credenziali non valide"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_fipsas_api.TestValidationFlow" name="test_isp_cannot_send_other_sector" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Credenziali non valide&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">test_fipsas_api.py:24: in isp1
+    def isp1(): return login("ispettore1", "isp123")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_fipsas_api.py:15: in login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Credenziali non valide"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_fipsas_api.TestValidationFlow" name="test_send_approve_reject_correct" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Credenziali non valide&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">test_fipsas_api.py:24: in isp1
+    def isp1(): return login("ispettore1", "isp123")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_fipsas_api.py:15: in login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Credenziali non valide"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_fipsas_api.TestPublic" name="test_gare_list" time="0.346" /><testcase classname="tests.test_fipsas_api.TestPublic" name="test_classifica_docs_specie" time="0.598" /><testcase classname="tests.test_fipsas_api.TestAdminAndDraw" name="test_doc_and_specie" time="2.002" /><testcase classname="tests.test_fipsas_inviti.TestRegistrationInvite" name="test_full_flow" time="4.684" /><testcase classname="tests.test_fipsas_bonus_timer.TestTimer" name="test_timer_lifecycle_colpo" time="6.263" /><testcase classname="tests.test_fipsas_inviti.TestRegistrationInvite" name="test_pending_seed_user_blocked" time="0.342" /><testcase classname="tests.test_fipsas_surf_points.TestPublic" name="test_gare_list_and_demo" time="0.267" /><testcase classname="tests.test_fipsas_surf_points.TestPublic" name="test_classifica_structure" time="0.144" /><testcase classname="tests.test_fipsas_surf_points.TestSpecie" name="test_52_species_77_values" time="0.124" /><testcase classname="tests.test_fipsas_surf_points.TestSpecie" name="test_put_specie_validation" time="0.605" /><testcase classname="tests.test_fipsas_api.TestChat" name="test_chat_targeting" time="0.000"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Credenziali non valide&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">test_fipsas_api.py:24: in isp1
+    def isp1(): return login("ispettore1", "isp123")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_fipsas_api.py:15: in login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Credenziali non valide"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_fipsas_bonus_timer.TestDemoSurfPoints" name="test_points_with_bonus_and_preda" time="2.856" /><testcase classname="tests.test_fipsas_inviti.TestSurfValidation" name="test_measure_flow_integer_points" time="0.529"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Credenziali non valide&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">test_fipsas_inviti.py:23: in isp1
+    def isp1(): return login("ispettore1", "isp123")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_fipsas_inviti.py:14: in login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Credenziali non valide"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_fipsas_bonus_timer.TestTimer" name="test_timer_forbidden" time="1.298" /><testcase classname="tests.test_fipsas_inviti.TestDocsUpload" name="test_upload_download" time="1.631" /><testcase classname="tests.test_fipsas_bonus_timer.TestTimer" name="test_ispettore_live_has_timer_fields" time="0.131" /><testcase classname="tests.test_fipsas_inviti.TestAccess" name="test_isp_cannot_judge" time="0.357"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Credenziali non valide&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">test_fipsas_inviti.py:23: in isp1
+    def isp1(): return login("ispettore1", "isp123")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_fipsas_inviti.py:14: in login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Credenziali non valide"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_fipsas_surf_points.TestSurfPoints" name="test_points_match_table" time="0.342"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Credenziali non valide&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">test_fipsas_surf_points.py:22: in isp1
+    def isp1(): return login("ispettore1", "isp123")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_fipsas_surf_points.py:13: in login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Credenziali non valide"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase><testcase classname="tests.test_fipsas_surf_points.TestGiudiceGara" name="test_lifecycle" time="0.746"><error message="failed on setup with &quot;AssertionError: {&quot;detail&quot;:&quot;Credenziali non valide&quot;}&#10;assert 401 == 200&#10; +  where 401 = &lt;Response [401]&gt;.status_code&quot;">test_fipsas_surf_points.py:22: in isp1
+    def isp1(): return login("ispettore1", "isp123")
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+test_fipsas_surf_points.py:13: in login
+    assert r.status_code == 200, r.text
+E   AssertionError: {"detail":"Credenziali non valide"}
+E   assert 401 == 200
+E    +  where 401 = &lt;Response [401]&gt;.status_code</error></testcase></testsuite></testsuites>
