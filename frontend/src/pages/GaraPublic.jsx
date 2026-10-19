@@ -3,6 +3,7 @@ import { MapPin, Calendar } from "lucide-react";
 import { TopBar, StatoChip } from "@/components/TopBar";
 import { ClassificaView } from "@/components/ClassificaView";
 import { CampoGara } from "@/components/CampoGara";
+import { GaraTimer } from "@/components/GaraTimer";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { get, usePoll } from "@/lib/api";
 import { fmtDate } from "@/lib/constants";
@@ -30,6 +31,7 @@ export default function GaraPublic() {
           <span className="flex items-center gap-1"><MapPin size={14} />{g.luogo}</span>
           <span className="num text-slate-700">{g.n_iscritti}/{g.max_iscritti} iscritti{g.settori_preview ? ` => ${g.settori_preview}` : ""}</span>
         </div>
+        {(g.timer && g.timer.stato !== "FERMO") || g.stato === "In Corso Live" ? <div className="mt-6"><GaraTimer gara={g} /></div> : null}
         <Tabs defaultValue={sp.get("tab") === "campo" ? "campo" : "classifica"} className="mt-8">
           <TabsList className="tabs-list !bg-transparent">
             <TabsTrigger value="classifica" className="tab-t data-[state=active]:!bg-transparent" data-testid="public-tab-classifica">Classifica Live</TabsTrigger>

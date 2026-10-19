@@ -110,15 +110,18 @@ def sorteggio(iscritti, tipo, zone):
     return result, settori
 
 
-def punti_cattura(c, specie_map, surf):
+def punti_cattura(c, specie_map, surf, gara=None):
     peso = float(c.get("peso") or 0)
     if not surf:
         return round(peso, 2), None
+    gara = gara or {}
     sp = specie_map.get(c.get("specie"))
-    if not sp or not sp.get("punti"):
-        return 0, None
-    p = punti_tabella(sp, c.get("cm"))
-    return p, {"min": sp.get("min"), "sotto": p == 0}
+    tab = punti_tabella(sp, c.get("cm")) if sp and sp.get("punti") else 0
+    if tab == 0:
+        pt = int(gara.get("preda_tecnica") or 0)
+        return pt, {"min": sp.get("min") if sp else None, "tabella": 0, "bonus": 0, "sotto": True, "preda_tecnica": pt}
+    bonus = int(gara.get("bonus_pesce") or 0)
+    return tab + bonus, {"min": sp.get("min"), "tabella": tab, "bonus": bonus, "sotto": False}
 
 
 def min_cm(punti):
@@ -143,7 +146,7 @@ def build_classifica(gara, iscritti, catture, specie_map):
             continue
         cs, tot_p, tot_w = [], 0.0, 0.0
         for c in by_isc.get(i["id"], []):
-            p, det = punti_cattura(c, specie_map, surf)
+            p, det = punti_cattura(c, specie_map, surf, gara)
             cs.append({**c, "punti": p, "dettaglio": det})
             tot_p += p if surf else 0
             tot_w += 0 if surf else float(c.get("peso") or 0)

@@ -10,10 +10,21 @@ import { PesaLive } from "@/components/PesaLive";
 import { Validazione } from "@/components/Validazione";
 import { ClassificaView } from "@/components/ClassificaView";
 import { Chat } from "@/components/Chat";
+import { GaraTimer } from "@/components/GaraTimer";
 import { GiudiceIspettori } from "@/components/GiudiceIspettori";
 import { useAuth } from "@/context/AuthContext";
 import { api, errMsg, get, usePoll } from "@/lib/api";
 import { SPECIALITA, TIPI, fmtDate } from "@/lib/constants";
+
+const NumSet = ({ label, k, g, patch, locked }) => {
+  const [v, setV] = useState(g[k] ?? 0);
+  useEffect(() => { setV(g[k] ?? 0); }, [g[k]]); // eslint-disable-line
+  return (
+    <div className="w-28"><span className="lbl">{label}</span>
+      <input data-testid={`set-${k}`} disabled={locked} type="number" min="0" inputMode="numeric" className="fld num" value={v}
+        onChange={(e) => setV(e.target.value)} onBlur={() => Number(v) !== Number(g[k] ?? 0) && patch({ [k]: Number(v) || 0 })} /></div>
+  );
+};
 
 export default function Giudice() {
   const { id } = useParams();
@@ -67,10 +78,14 @@ export default function Giudice() {
             <select data-testid="specialita-select" disabled={locked} className="fld w-48" value={g.specialita} onChange={(e) => patch({ specialita: e.target.value })}>{SPECIALITA.map((s) => <option key={s}>{s}</option>)}</select></div>
           <div><span className="lbl">Tipo gara</span>
             <select data-testid="tipo-select" disabled={locked} className="fld w-40" value={g.tipo} onChange={(e) => patch({ tipo: e.target.value })}>{TIPI.map((s) => <option key={s}>{s}</option>)}</select></div>
+          <NumSet label="Durata min" k="durata_min" g={g} patch={patch} locked={locked} />
+          {g.specialita === "Surf Casting" && <NumSet label="Bonus pesce" k="bonus_pesce" g={g} patch={patch} locked={locked} />}
+          {g.specialita === "Surf Casting" && <NumSet label="Preda tecnica" k="preda_tecnica" g={g} patch={patch} locked={locked} />}
           <div className="num rounded-md border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs font-bold" data-testid="gara-badge">
             {g.specialita} | {g.tipo} | {g.n_iscritti} iscritti | {g.settori_label || g.settori_preview || "—"}
           </div>
         </div>
+        <div className="mt-4"><GaraTimer gara={g} controls={!locked} onChange={reload} /></div>
         <Tabs value={tab} onValueChange={setTab} className="mt-6">
           <TabsList className="tabs-list !bg-transparent">
             {[["iscritti", "Iscritti"], ["campo", "Campo gara"], ["ispettori", "Ispettori"], ["pesa", "Pesa Live"], ["validazione", "Validazione"], ["classifica", "Classifica"], ["chat", "Chat"]].map(([k, t]) => (
@@ -83,7 +98,7 @@ export default function Giudice() {
           <TabsContent value="campo" className="mt-5"><CampoGara individui={classifica.individui} settori={g.settori} /></TabsContent>
           <TabsContent value="ispettori" className="mt-5"><GiudiceIspettori gara={g} /></TabsContent>
           <TabsContent value="pesa" className="mt-5"><PesaLive gara={g} classifica={classifica} specie={specie} onChange={reload} /></TabsContent>
-          <TabsContent value="validazione" className="mt-5"><Validazione catture={catture} individui={classifica.individui} specie={specie} surf={classifica.surf} locked={locked} onChange={reload} /></TabsContent>
+          <TabsContent value="validazione" className="mt-5"><Validazione gara={g} catture={catture} individui={classifica.individui} specie={specie} surf={classifica.surf} locked={locked} onChange={reload} /></TabsContent>
           <TabsContent value="classifica" className="mt-5"><ClassificaView data={classifica} gara={g} exportable /></TabsContent>
           <TabsContent value="chat" className="mt-5"><Chat garaId={id} messaggi={messaggi} me={user.username} destinatari={ispettori} onSent={reload} /></TabsContent>
         </Tabs>

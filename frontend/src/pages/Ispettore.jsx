@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { TopBar } from "@/components/TopBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Chat } from "@/components/Chat";
+import { GaraTimer } from "@/components/GaraTimer";
 import { useAuth } from "@/context/AuthContext";
 import { api, errMsg, get, usePoll } from "@/lib/api";
 import { MISURA_STATO, puntiPreview, fmt, fmtTime } from "@/lib/constants";
@@ -14,7 +15,7 @@ const MisuraForm = ({ gara, isc, specie, surf, onSent }) => {
   const [peso, setPeso] = useState("");
   const [busy, setBusy] = useState(false);
   const spObj = specie.find((s) => s.name === sp);
-  const prev = surf ? puntiPreview(spObj, cm) : null;
+  const prev = surf ? puntiPreview(spObj, cm, gara) : null;
   const send = async (e) => {
     e.preventDefault();
     setBusy(true);
@@ -42,7 +43,7 @@ const MisuraForm = ({ gara, isc, specie, surf, onSent }) => {
       </div>
       {prev && (
         <div data-testid="isp-preview" className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${prev.sotto ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>
-          {prev.sotto && <AlertTriangle size={16} />}{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · 0 punti` : `${fmt(prev.p)} punti`}
+          {prev.sotto && <AlertTriangle size={16} />}{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · preda tecnica ${prev.p} punti` : `${fmt(prev.p)} punti`}
         </div>
       )}
       <button data-testid="isp-send-btn" disabled={busy || gara.stato === "Conclusa"} className="btn btn-lg btn-primary w-full"><Send size={18} />Invia misura</button>
@@ -108,6 +109,7 @@ export default function Ispettore() {
           <div className={`num grid h-14 w-14 place-items-center rounded-lg text-2xl font-bold ${tec ? "bg-yellow-300" : "bg-slate-900 text-white"}`} data-testid="isp-settore">{settore}</div>
           <div className="min-w-0"><div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Settore {settore}{tec && " tecnico"}</div><div className="truncate font-bold">{g.nome}</div></div>
         </div>
+        <div className="mb-4"><GaraTimer gara={g} compact /></div>
         {g.stato === "Conclusa" && <p className="mb-3 rounded-md bg-slate-100 px-3 py-2 text-sm" data-testid="isp-gara-chiusa">Gara conclusa.</p>}
         <Tabs defaultValue="misure">
           <TabsList className="tabs-list !bg-transparent">

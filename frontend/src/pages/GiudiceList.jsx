@@ -6,14 +6,14 @@ import { TopBar, StatoChip } from "@/components/TopBar";
 import { api, errMsg, get } from "@/lib/api";
 import { SPECIALITA, TIPI, fmtDate } from "@/lib/constants";
 
-const EMPTY = { nome: "", data: new Date().toISOString().slice(0, 10), luogo: "", specialita: "Surf Casting", tipo: "Individuale", zone: 1, max_iscritti: 30, stato: "Iscrizioni Aperte" };
+const EMPTY = { nome: "", data: new Date().toISOString().slice(0, 10), luogo: "", specialita: "Surf Casting", tipo: "Individuale", zone: 1, max_iscritti: 30, stato: "Iscrizioni Aperte", durata_min: 180, bonus_pesce: 0, preda_tecnica: 0 };
 
 const NuovaGara = ({ onDone }) => {
   const [f, setF] = useState(EMPTY);
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
   const save = async (e) => {
     e.preventDefault();
-    try { await api.post("/gare", { ...f, zone: Number(f.zone), max_iscritti: Number(f.max_iscritti) }); toast.success("Gara creata"); onDone(); } catch (er) { toast.error(errMsg(er)); }
+    try { await api.post("/gare", { ...f, durata_min: Number(f.durata_min) || 180, bonus_pesce: Number(f.bonus_pesce) || 0, preda_tecnica: Number(f.preda_tecnica) || 0, zone: Number(f.zone), max_iscritti: Number(f.max_iscritti) }); toast.success("Gara creata"); onDone(); } catch (er) { toast.error(errMsg(er)); }
   };
   return (
     <form onSubmit={save} className="card mb-4 grid gap-3 p-4 sm:grid-cols-3" data-testid="giudice-gara-form">
@@ -23,6 +23,9 @@ const NuovaGara = ({ onDone }) => {
       <div><span className="lbl">Specialità</span><select data-testid="ggf-specialita" className="fld" value={f.specialita} onChange={set("specialita")}>{SPECIALITA.map((s) => <option key={s}>{s}</option>)}</select></div>
       <div><span className="lbl">Tipo</span><select data-testid="ggf-tipo" className="fld" value={f.tipo} onChange={set("tipo")}>{TIPI.map((s) => <option key={s}>{s}</option>)}</select></div>
       <div><span className="lbl">Max iscritti</span><input data-testid="ggf-max" type="number" inputMode="numeric" className="fld" value={f.max_iscritti} onChange={set("max_iscritti")} /></div>
+      {f.specialita === "Surf Casting" && <div><span className="lbl">Bonus pesce</span><input data-testid="ggf-bonus" type="number" min="0" inputMode="numeric" className="fld" value={f.bonus_pesce} onChange={(e) => setF({ ...f, bonus_pesce: e.target.value })} /></div>}
+      {f.specialita === "Surf Casting" && <div><span className="lbl">Punteggio preda tecnica</span><input data-testid="ggf-preda" type="number" min="0" inputMode="numeric" className="fld" value={f.preda_tecnica} onChange={(e) => setF({ ...f, preda_tecnica: e.target.value })} /></div>}
+      <div><span className="lbl">Durata gara (min)</span><input data-testid="ggf-durata" type="number" min="1" inputMode="numeric" className="fld" value={f.durata_min} onChange={(e) => setF({ ...f, durata_min: e.target.value })} /></div>
       <div className="flex items-end gap-2 sm:col-span-2"><button data-testid="ggf-save" className="btn btn-primary">Crea gara</button><button type="button" onClick={onDone} className="btn btn-outline">Annulla</button></div>
     </form>
   );

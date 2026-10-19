@@ -96,7 +96,11 @@ async def classifica(g, only_approved=True):
 async def gara_summary(g):
     n = await db.iscritti.count_documents({"gara_id": g["id"]})
     label = g.get("settori_label") or (settori_label(compute_settori(n)) if n else "")
-    return {**g, "n_iscritti": n, "settori_preview": label}
+    return {**g, "n_iscritti": n, "settori_preview": label, "server_now": now_ms()}
+
+
+def now_ms():
+    return int(datetime.now(timezone.utc).timestamp() * 1000)
 
 
 # ---------- models
@@ -127,12 +131,18 @@ class GaraIn(BaseModel):
     max_iscritti: int = 30
     stato: str = "Iscrizioni Aperte"
     giudice_id: Optional[str] = None
+    durata_min: int = 180
+    bonus_pesce: int = 0
+    preda_tecnica: int = 0
 
 
 class GaraPatch(BaseModel):
     specialita: Optional[str] = None
     tipo: Optional[str] = None
     zone: Optional[int] = None
+    durata_min: Optional[int] = None
+    bonus_pesce: Optional[int] = None
+    preda_tecnica: Optional[int] = None
 
 
 class UserIn(BaseModel):
@@ -375,8 +385,12 @@ async def my_gare(u=Depends(require("ADMIN", "GIUDICE"))):
 
 @api.patch("/gare/{gid}")
 async def patch_gara(gid: str, body: GaraPatch, u=Depends(require("ADMIN", "GIUDICE"))):
-    await gara_judge(gid, u)
-    await db.gare.update_one({"id": gid}, {"$set": body.model_dump(exclude_none=True)})
+    g = await gara_judge(gid, u)
+    upd = body.model_dump(exclude_none=True)
+    t = g.get("timer") or {}
+    if body.durata_min and t.get("stato") in ("IN_CORSO", "PAUSA"):
+        upd["timer.durata_ms"] = body.durata_min * 60000
+    await db.gare.update_one({"id": gid}, {"$set": upd})
     return await get_gara(gid)
 
 
@@ -454,6 +468,29 @@ async def set_stato(gid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE"))
         raise HTTPException(403, "Solo l'Admin può riaprire una gara conclusa")
     await db.gare.update_one({"id": gid}, {"$set": {"stato": stato}})
     return {"ok": True}
+
+
+@api.post("/gare/{gid}/timer")
+async def timer(gid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE"))):
+    g = await gara_judge(gid, u)
+    t = g.get("timer") or {"stato": "FERMO"}
+    az, n = body.get("azione"), now_ms()
+    if az == "start" and t["stato"] in ("FERMO", "TERMINATO"):
+        t = {"stato": "IN_CORSO", "start_ms": n, "pausa_ms": 0, "paused_at": None, "durata_ms": int(g.get("durata_min") or 180) * 60000}
+        if g["stato"] in ("Sorteggiata", "Iscrizioni Aperte") and g.get("settori"):
+            await db.gare.update_one({"id": gid}, {"$set": {"stato": "In Corso Live"}})
+    elif az == "pausa" and t["stato"] == "IN_CORSO":
+        t.update({"stato": "PAUSA", "paused_at": n})
+    elif az == "riprendi" and t["stato"] == "PAUSA":
+        t.update({"stato": "IN_CORSO", "pausa_ms": t["pausa_ms"] + n - t["paused_at"], "paused_at": None})
+    elif az == "stop" and t["stato"] in ("IN_CORSO", "PAUSA"):
+        t.update({"stato": "TERMINATO", "stop_at": n})
+    elif az == "reset":
+        t = {"stato": "FERMO"}
+    else:
+        raise HTTPException(400, "Azione non valida")
+    await db.gare.update_one({"id": gid}, {"$set": {"timer": t}})
+    return t
 
 
 @api.get("/gare/{gid}/live")

@@ -28,11 +28,12 @@ export function settoriLabel(n) {
 }
 
 export const CM_START = 7;
-export function puntiPreview(sp, cm) {
+export function puntiPreview(sp, cm, gara = {}) {
   if (!sp?.punti || cm === "" || cm == null) return null;
   const i = Math.floor(Number(cm)) - CM_START;
-  const p = i < 0 ? 0 : sp.punti[Math.min(i, sp.punti.length - 1)];
-  return { p, sotto: p === 0 };
+  const tab = i < 0 ? 0 : sp.punti[Math.min(i, sp.punti.length - 1)];
+  if (tab === 0) return { p: Number(gara.preda_tecnica || 0), sotto: true };
+  return { p: tab + Number(gara.bonus_pesce || 0), tab, bonus: Number(gara.bonus_pesce || 0), sotto: false };
 }
 
 export const docUrl = (d) => (d.storage_path ? `${process.env.REACT_APP_BACKEND_URL}/api/documenti/${d.id}/file` : d.url);

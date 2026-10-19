@@ -59,7 +59,7 @@ const Card = ({ r, gara, specie, surf, locked, onChange }) => {
                 {surf ? (
                   <>
                     <td>{c.specie}{c.peso ? <span className="text-slate-400"> · {c.peso}g</span> : ""}</td><td className="num">{c.cm}</td>
-                    <td className={`num font-bold ${c.dettaglio?.sotto ? "text-red-600" : ""}`}>{fmt(c.punti)}</td>
+                    <td className={`num font-bold ${c.dettaglio?.sotto ? "text-red-600" : ""}`}>{fmt(c.punti)}<span className="ml-1 text-[10px] font-normal text-slate-400">{c.dettaglio?.sotto ? "p.tecnica" : c.dettaglio?.bonus ? `${c.dettaglio.tabella}+${c.dettaglio.bonus}` : ""}</span></td>
                   </>
                 ) : (
                   <><td>Pesata</td><td className="num font-bold">{fmt(c.peso)} g</td></>
