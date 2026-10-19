@@ -1,6 +1,7 @@
 import random
 from collections import Counter, defaultdict
 
+CM_START = 7
 LETTERS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 GROUP_SIZE = {"Coppie 2": 2, "Box 4": 4, "Squadre 4": 4}
 BOX_COLORS = ["#2563eb", "#dc2626", "#16a34a", "#9333ea", "#ea580c", "#0891b2", "#db2777", "#65a30d", "#4f46e5", "#ca8a04", "#0d9488", "#be123c"]
@@ -114,13 +115,21 @@ def punti_cattura(c, specie_map, surf):
     if not surf:
         return round(peso, 2), None
     sp = specie_map.get(c.get("specie"))
-    cm = float(c.get("cm") or 0)
-    if not sp:
-        return 1, None
-    if cm < sp["min"]:
-        return 1, {"min": sp["min"], "base": 1, "bonus": 0, "sotto": True}
-    base = int(round((cm - sp["min"] + 1) * sp["coef"] + sp["base"]))
-    return base + 50, {"min": sp["min"], "base": base, "bonus": 50, "sotto": False}
+    if not sp or not sp.get("punti"):
+        return 0, None
+    p = punti_tabella(sp, c.get("cm"))
+    return p, {"min": sp.get("min"), "sotto": p == 0}
+
+
+def min_cm(punti):
+    return next((CM_START + i for i, p in enumerate(punti) if p > 0), CM_START)
+
+
+def punti_tabella(sp, cm):
+    i = int(float(cm or 0)) - CM_START
+    if i < 0:
+        return 0
+    return int(sp["punti"][min(i, len(sp["punti"]) - 1)])
 
 
 def build_classifica(gara, iscritti, catture, specie_map):
@@ -137,7 +146,7 @@ def build_classifica(gara, iscritti, catture, specie_map):
             p, det = punti_cattura(c, specie_map, surf)
             cs.append({**c, "punti": p, "dettaglio": det})
             tot_p += p if surf else 0
-            tot_w += float(c.get("peso") or 0)
+            tot_w += 0 if surf else float(c.get("peso") or 0)
         rows.append({"id": i["id"], "nome": f"{i['nome']} {i['cognome']}", "societa": i.get("societa", ""), "gruppo": i.get("gruppo", ""),
                      "settore": i["settore"], "zona": i.get("zona"), "picchetto": i["picchetto"], "esterno": i.get("esterno", False),
                      "colore": i.get("colore"), "catture": cs, "n_pesci": len(cs), "punti": round(tot_p, 2), "peso": round(tot_w, 2),

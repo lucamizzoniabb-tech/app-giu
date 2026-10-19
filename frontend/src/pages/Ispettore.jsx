@@ -37,12 +37,12 @@ const MisuraForm = ({ gara, isc, specie, surf, onSent }) => {
           </select></div>
       )}
       <div className="grid grid-cols-2 gap-3">
-        {surf && <div><span className="lbl">Misura cm</span><input data-testid="isp-cm-input" required type="number" step="0.5" min="0" inputMode="decimal" className="fld num h-14 text-2xl" value={cm} onChange={(e) => setCm(e.target.value)} /></div>}
-        <div className={surf ? "" : "col-span-2"}><span className="lbl">Peso g {surf && "(facolt.)"}</span><input data-testid="isp-peso-input" required={!surf} type="number" step="1" min="0" inputMode="numeric" className="fld num h-14 text-2xl" value={peso} onChange={(e) => setPeso(e.target.value)} /></div>
+        {surf && <div><span className="lbl">Misura cm</span><input data-testid="isp-cm-input" required type="number" step="1" min="0" inputMode="numeric" className="fld num h-14 text-2xl" value={cm} onChange={(e) => setCm(e.target.value)} /></div>}
+        <div className={surf ? "" : "col-span-2"}><span className="lbl">Peso g {surf && "(facolt., non conta)"}</span><input data-testid="isp-peso-input" required={!surf} type="number" step="1" min="0" inputMode="numeric" className="fld num h-14 text-2xl" value={peso} onChange={(e) => setPeso(e.target.value)} /></div>
       </div>
       {prev && (
         <div data-testid="isp-preview" className={`flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold ${prev.sotto ? "bg-red-50 text-red-700" : "bg-emerald-50 text-emerald-800"}`}>
-          {prev.sotto && <AlertTriangle size={16} />}{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · 1 punto` : `${fmt(prev.p)} punti`}
+          {prev.sotto && <AlertTriangle size={16} />}{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · 0 punti` : `${fmt(prev.p)} punti`}
         </div>
       )}
       <button data-testid="isp-send-btn" disabled={busy || gara.stato === "Conclusa"} className="btn btn-lg btn-primary w-full"><Send size={18} />Invia misura</button>

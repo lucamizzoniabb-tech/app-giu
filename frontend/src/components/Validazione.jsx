@@ -38,7 +38,7 @@ const Pending = ({ c, isc, specie, surf, onChange }) => {
       {mode === "correggi" && (
         <div className="mt-3 flex flex-wrap gap-2">
           {surf && <select data-testid="correct-specie-select" className="fld flex-1" value={sp} onChange={(e) => setSp(e.target.value)}>{specie.map((s) => <option key={s.name}>{s.name}</option>)}</select>}
-          <input data-testid="correct-cm-input" className="fld w-24" type="number" step="0.5" inputMode="decimal" value={cm} onChange={(e) => setCm(e.target.value)} />
+          <input data-testid="correct-cm-input" className="fld w-24" type="number" step="1" inputMode="numeric" value={cm} onChange={(e) => setCm(e.target.value)} />
           <button data-testid="correct-confirm-btn" onClick={() => act("correggi", surf ? { specie: sp, cm: Number(cm) } : { peso: Number(cm) })} className="btn btn-primary">Salva e approva</button>
         </div>
       )}

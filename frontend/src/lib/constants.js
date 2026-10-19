@@ -27,11 +27,12 @@ export function settoriLabel(n) {
   return out.join(" ");
 }
 
+export const CM_START = 7;
 export function puntiPreview(sp, cm) {
-  if (!sp || cm === "" || cm == null) return null;
-  const c = Number(cm);
-  if (c < sp.min) return { p: 1, sotto: true };
-  return { p: Math.round((c - sp.min + 1) * sp.coef + sp.base) + 50, sotto: false };
+  if (!sp?.punti || cm === "" || cm == null) return null;
+  const i = Math.floor(Number(cm)) - CM_START;
+  const p = i < 0 ? 0 : sp.punti[Math.min(i, sp.punti.length - 1)];
+  return { p, sotto: p === 0 };
 }
 
 export const docUrl = (d) => (d.storage_path ? `${process.env.REACT_APP_BACKEND_URL}/api/documenti/${d.id}/file` : d.url);

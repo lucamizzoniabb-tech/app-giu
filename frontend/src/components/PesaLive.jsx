@@ -26,8 +26,8 @@ const AddForm = ({ gara, iscritto, specie, surf, onDone }) => {
           {specie.map((s) => <option key={s.name} value={s.name}>{s.name} ({s.min})</option>)}
         </select>
       )}
-      {surf && <input required data-testid={`pesa-cm-${iscritto.picchetto}`} className="fld h-10 w-20" type="number" step="0.5" min="0" inputMode="decimal" placeholder="cm" value={cm} onChange={(e) => setCm(e.target.value)} />}
-      <input required={!surf} data-testid={`pesa-peso-${iscritto.picchetto}`} className="fld h-10 w-24" type="number" step="1" min="0" inputMode="numeric" placeholder="peso g" value={peso} onChange={(e) => setPeso(e.target.value)} />
+      {surf && <input required data-testid={`pesa-cm-${iscritto.picchetto}`} className="fld h-10 w-20" type="number" step="1" min="0" inputMode="numeric" placeholder="cm" value={cm} onChange={(e) => setCm(e.target.value)} />}
+      {!surf && <input required data-testid={`pesa-peso-${iscritto.picchetto}`} className="fld h-10 w-24" type="number" step="1" min="0" inputMode="numeric" placeholder="peso g" value={peso} onChange={(e) => setPeso(e.target.value)} />}
       <button data-testid={`pesa-add-${iscritto.picchetto}`} className="btn btn-primary h-10 px-3" aria-label="Aggiungi"><Plus size={16} /></button>
     </form>
   );
@@ -52,15 +52,14 @@ const Card = ({ r, gara, specie, surf, locked, onChange }) => {
       </div>
       {r.catture.length > 0 && (
         <table className="tbl mt-2 text-xs">
-          {surf && <thead><tr><th>Specie</th><th>cm</th><th>Min</th><th>Base</th><th>Bonus</th><th>Tot</th><th /></tr></thead>}
+          {surf && <thead><tr><th>Specie</th><th>cm</th><th>Punti</th><th /></tr></thead>}
           <tbody>
             {r.catture.map((c) => (
               <tr key={c.id}>
                 {surf ? (
                   <>
                     <td>{c.specie}{c.peso ? <span className="text-slate-400"> · {c.peso}g</span> : ""}</td><td className="num">{c.cm}</td>
-                    <td className="num">{c.dettaglio?.min ?? "—"}</td><td className="num">{c.dettaglio ? fmt(c.dettaglio.base) : 1}</td>
-                    <td className="num">{c.dettaglio?.bonus ?? 0}</td><td className={`num font-bold ${c.dettaglio?.sotto ? "text-red-600" : ""}`}>{fmt(c.punti)}</td>
+                    <td className={`num font-bold ${c.dettaglio?.sotto ? "text-red-600" : ""}`}>{fmt(c.punti)}</td>
                   </>
                 ) : (
                   <><td>Pesata</td><td className="num font-bold">{fmt(c.peso)} g</td></>

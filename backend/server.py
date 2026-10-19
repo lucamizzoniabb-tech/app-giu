@@ -17,7 +17,7 @@ from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
 from pydantic import BaseModel
 
-from logic import compute_settori, settori_label, build_classifica
+from logic import compute_settori, settori_label, build_classifica, min_cm
 from seed import seed, gen_iscritti, apply_draw, now
 
 client = AsyncIOMotorClient(os.environ['MONGO_URL'])
@@ -182,9 +182,7 @@ class DocIn(BaseModel):
 
 
 class SpecieIn(BaseModel):
-    min: float
-    coef: float
-    base: float
+    punti: List[int]
 
 
 # ---------- auth
@@ -360,7 +358,9 @@ async def del_doc(did: str, u=Depends(require("ADMIN"))):
 
 @api.put("/specie/{name}")
 async def upd_specie(name: str, body: SpecieIn, u=Depends(require("ADMIN"))):
-    await db.specie.update_one({"name": name}, {"$set": body.model_dump()})
+    if len(body.punti) != 77:
+        raise HTTPException(400, "Servono 77 valori (cm 7-83)")
+    await db.specie.update_one({"name": name}, {"$set": {"punti": body.punti, "min": min_cm(body.punti)}})
     return {"ok": True}
 
 
@@ -477,7 +477,7 @@ async def act_cattura(cid: str, body: CatturaAction, u=Depends(require("ADMIN", 
         upd.update({"stato": "RIGETTATA", "motivo": body.motivo})
     elif body.azione == "correggi":
         upd.update({"stato": "APPROVATA", "corretta": True, "originale": {"specie": c.get("specie"), "cm": c.get("cm")}})
-        upd.update({k: v for k, v in {"specie": body.specie, "cm": body.cm, "peso": body.peso}.items() if v is not None})
+        upd.update({k: v for k, v in {"specie": body.specie, "cm": int(body.cm) if body.cm is not None else None, "peso": body.peso}.items() if v is not None})
     else:
         raise HTTPException(400, "Azione non valida")
     await db.catture.update_one({"id": cid}, {"$set": upd})
@@ -520,6 +520,8 @@ async def add_cattura(gid: str, body: CatturaIn, u=Depends(require("ADMIN", "GIU
         stato = "APPROVATA"
     if body.cm is None and body.peso is None:
         raise HTTPException(400, "Inserisci misura o peso")
+    if body.cm is not None:
+        body.cm = int(body.cm)
     c = {**body.model_dump(), "id": str(uuid.uuid4()), "gara_id": gid, "settore": i["settore"], "stato": stato, "motivo": "", "inviato_da": u["username"], "origine": u["role"], "created_at": now()}
     await db.catture.insert_one(dict(c))
     if g["stato"] == "Sorteggiata":

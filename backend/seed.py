@@ -1,7 +1,9 @@
+import json
 import random
+from pathlib import Path
 import uuid
 from datetime import datetime, timezone, timedelta
-from logic import sorteggio, settori_label, GROUP_SIZE
+from logic import sorteggio, settori_label, GROUP_SIZE, min_cm
 
 SPECIE_MIN = [
     ("Aguglia", 25, 1.0), ("Aguglia Imperiale", 60, 1.0), ("Alaccia", 15, 0.5), ("Balestra", 20, 1.0), ("Barracuda", 30, 1.0),
@@ -58,8 +60,13 @@ async def seed(db, hash_password):
     users = [("mizzxbox@hotmail.it", "rosalba", "ADMIN", "Amministratore", None), ("giudice1", "giudice123", "GIUDICE", "Giudice Mario Verdi", None),
              ("ispettore1", "isp123", "ISPETTORE", "Ispettore Sponda A", "A"), ("ispettore2", "isp123", "ISPETTORE", "Ispettore Sponda B", "B"),
              ("ispettore3", "isp123", "ISPETTORE", "Ispettore Sponda C", "C")]
-    if await db.specie.count_documents({}) == 0:
-        await db.specie.insert_many([{"name": n, "min": m, "coef": c, "base": BASE.get(n, 20)} for n, m, c in SPECIE_MIN])
+    if not await db.specie.find_one({"punti": {"$exists": True}}):
+        tab = json.load(open(Path(__file__).parent / "specie_tabella.json"))
+        await db.specie.delete_many({})
+        await db.specie.insert_many([{"name": n, "punti": p, "min": min_cm(p)} for n, p in tab.items()])
+        names = list(tab)
+        async for c in db.catture.find({"cm": {"$ne": None}, "specie": {"$nin": names}}, {"_id": 0, "id": 1}):
+            await db.catture.update_one({"id": c["id"]}, {"$set": {"specie": random.choice(["Spigola", "Mormora", "Saraghi", "Orata Tanuta", "Aguglia", "Cefalo"]), "cm": random.choice([14, 19, 23, 27, 31, 36])}})
     if await db.documenti.count_documents({}) == 0:
         await db.documenti.insert_many([{"id": str(uuid.uuid4()), "titolo": t, "anno": a, "specialita": s, "url": u} for t, a, s, u in DOCUMENTI])
     for u, p, r, name, _ in users:
@@ -81,7 +88,6 @@ async def seed(db, hash_password):
         ("Campionato Regionale Box Surf Casting", 19, "Sabaudia - Lungomare", "Surf Casting", "Box 4", 2, 40, "Iscrizioni Aperte", 24),
     ]
     giudice = await db.users.find_one({"username": "giudice1"})
-    specie = [s["name"] for s in await db.specie.find({}, {"_id": 0}).to_list(100)]
     for idx, (nome, d, luogo, spec, tipo, zone, mx, stato, n) in enumerate(gare):
         gid = str(uuid.uuid4())
         g = {"id": gid, "nome": nome, "data": (today + timedelta(days=d)).isoformat(), "luogo": luogo, "specialita": spec, "tipo": tipo,
@@ -105,7 +111,7 @@ async def seed(db, hash_password):
                 c = {"id": str(uuid.uuid4()), "gara_id": gid, "iscritto_id": i["id"], "settore": i["settore"], "stato": st, "motivo": "",
                      "inviato_da": ins or "giudice1", "origine": "ISPETTORE" if ins else "GIUDICE", "created_at": now()}
                 if surf:
-                    c.update({"specie": random.choice(["Spigola", "Orata", "Mormora", "Sarago Maggiore", "Aguglia", "Cefalo"]), "cm": random.choice([18, 22.5, 26, 30, 34.5, 38]), "peso": None})
+                    c.update({"specie": random.choice(["Spigola", "Mormora", "Saraghi", "Orata Tanuta", "Aguglia", "Cefalo"]), "cm": random.choice([14, 19, 23, 27, 31, 36]), "peso": None})
                 else:
                     c.update({"specie": "Pesata", "cm": None, "peso": random.randint(300, 4200)})
                 await db.catture.insert_one(c)

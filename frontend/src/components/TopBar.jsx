@@ -10,7 +10,7 @@ export const TopBar = ({ children }) => {
       <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4">
         <Link to="/" data-testid="brand-home-link" className="flex items-center gap-2">
           <span className="grid h-8 w-8 place-items-center rounded-md bg-[#0f3d56] text-white"><Fish size={17} /></span>
-          <span className="font-display text-[15px] font-extrabold leading-none">FIPSAS<span className="text-slate-400"> Sorteggi Pro</span></span>
+          <span className="font-display text-[15px] font-extrabold leading-none">Gare Ufficiali<span className="text-red-600"> Live</span></span>
         </Link>
         <div className="ml-auto flex items-center gap-2">
           {children}
