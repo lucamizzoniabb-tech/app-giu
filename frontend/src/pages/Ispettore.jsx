@@ -5,6 +5,8 @@ import { TopBar } from "@/components/TopBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Chat } from "@/components/Chat";
 import { GaraTimer } from "@/components/GaraTimer";
+import { ListaPrede } from "@/components/ListaPrede";
+import { ClassificaView } from "@/components/ClassificaView";
 import { useAuth } from "@/context/AuthContext";
 import { api, errMsg, get, usePoll } from "@/lib/api";
 import { MISURA_STATO, puntiPreview, fmt, fmtTime } from "@/lib/constants";
@@ -49,6 +51,11 @@ const MisuraForm = ({ gara, isc, specie, surf, onSent }) => {
       <button data-testid="isp-send-btn" disabled={busy || gara.stato === "Conclusa"} className="btn btn-lg btn-primary w-full"><Send size={18} />Invia misura</button>
     </form>
   );
+};
+
+const LiveCls = ({ garaId, render }) => {
+  const { data } = usePoll(() => get(`/gare/${garaId}/classifica`), 3000, garaId);
+  return data ? render(data) : <p className="text-sm text-slate-500">Caricamento…</p>;
 };
 
 const Inviti = ({ inviti, onDone }) => {
@@ -115,6 +122,8 @@ export default function Ispettore() {
           <TabsList className="tabs-list !bg-transparent">
             <TabsTrigger value="misure" className="tab-t data-[state=active]:!bg-transparent" data-testid="isp-tab-misure">Misure</TabsTrigger>
             <TabsTrigger value="storico" className="tab-t data-[state=active]:!bg-transparent" data-testid="isp-tab-storico">Storico ({catture.length})</TabsTrigger>
+            <TabsTrigger value="classifica" className="tab-t data-[state=active]:!bg-transparent" data-testid="isp-tab-classifica">Classifica</TabsTrigger>
+            <TabsTrigger value="prede" className="tab-t data-[state=active]:!bg-transparent" data-testid="isp-tab-prede">Prede</TabsTrigger>
             <TabsTrigger value="chat" className="tab-t data-[state=active]:!bg-transparent" data-testid="isp-tab-chat">Chat</TabsTrigger>
           </TabsList>
           <TabsContent value="misure" className="mt-4 space-y-4">
@@ -141,6 +150,8 @@ export default function Ispettore() {
             ))}
             {!catture.length && <p className="text-sm text-slate-500">Nessuna misura.</p>}
           </TabsContent>
+          <TabsContent value="classifica" className="mt-4"><LiveCls garaId={g.id} render={(d) => <ClassificaView data={d.classifica} gara={d.gara} />} /></TabsContent>
+          <TabsContent value="prede" className="mt-4"><LiveCls garaId={g.id} render={(d) => <ListaPrede classifica={d.classifica} />} /></TabsContent>
           <TabsContent value="chat" className="mt-4"><Chat garaId={g.id} messaggi={messaggi} me={user.username} onSent={reload} /></TabsContent>
         </Tabs>
       </main>

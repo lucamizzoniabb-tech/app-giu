@@ -4,6 +4,7 @@ import { TopBar, StatoChip } from "@/components/TopBar";
 import { ClassificaView } from "@/components/ClassificaView";
 import { CampoGara } from "@/components/CampoGara";
 import { GaraTimer } from "@/components/GaraTimer";
+import { ListaPrede } from "@/components/ListaPrede";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { get, usePoll } from "@/lib/api";
 import { fmtDate } from "@/lib/constants";
@@ -35,9 +36,11 @@ export default function GaraPublic() {
         <Tabs defaultValue={sp.get("tab") === "campo" ? "campo" : "classifica"} className="mt-8">
           <TabsList className="tabs-list !bg-transparent">
             <TabsTrigger value="classifica" className="tab-t data-[state=active]:!bg-transparent" data-testid="public-tab-classifica">Classifica Live</TabsTrigger>
+            <TabsTrigger value="prede" className="tab-t data-[state=active]:!bg-transparent" data-testid="public-tab-prede">Prede</TabsTrigger>
             <TabsTrigger value="campo" className="tab-t data-[state=active]:!bg-transparent" data-testid="public-tab-campo">Campo gara</TabsTrigger>
           </TabsList>
           <TabsContent value="classifica" className="mt-5"><ClassificaView data={classifica} gara={g} exportable={g.stato === "Conclusa"} /></TabsContent>
+          <TabsContent value="prede" className="mt-5"><ListaPrede classifica={classifica} /></TabsContent>
           <TabsContent value="campo" className="mt-5"><CampoGara individui={classifica.individui} settori={g.settori} /></TabsContent>
         </Tabs>
       </main>
