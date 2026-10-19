@@ -247,22 +247,26 @@ async def get_specie():
 
 # ---------- admin
 @api.post("/gare")
-async def create_gara(body: GaraIn, u=Depends(require("ADMIN"))):
+async def create_gara(body: GaraIn, u=Depends(require("ADMIN", "GIUDICE"))):
     g = {**body.model_dump(), "id": str(uuid.uuid4()), "settori": [], "settori_label": "", "created_at": now()}
+    if u["role"] == "GIUDICE":
+        g["giudice_id"] = u["id"]
     await db.gare.insert_one(dict(g))
     g.pop("_id", None)
     return g
 
 
 @api.put("/gare/{gid}")
-async def update_gara(gid: str, body: GaraIn, u=Depends(require("ADMIN"))):
-    await get_gara(gid)
-    await db.gare.update_one({"id": gid}, {"$set": body.model_dump()})
+async def update_gara(gid: str, body: GaraIn, u=Depends(require("ADMIN", "GIUDICE"))):
+    await gara_judge(gid, u)
+    upd = body.model_dump(exclude={"giudice_id"} if u["role"] == "GIUDICE" else None)
+    await db.gare.update_one({"id": gid}, {"$set": upd})
     return await get_gara(gid)
 
 
 @api.delete("/gare/{gid}")
-async def delete_gara(gid: str, u=Depends(require("ADMIN"))):
+async def delete_gara(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+    await gara_judge(gid, u)
     for c in ("iscritti", "catture", "messaggi"):
         await db[c].delete_many({"gara_id": gid})
     await db.gare.delete_one({"id": gid})

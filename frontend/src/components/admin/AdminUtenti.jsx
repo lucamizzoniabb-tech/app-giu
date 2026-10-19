@@ -57,19 +57,24 @@ export const AdminUtenti = () => {
           <div className="flex gap-2 sm:col-span-4"><button data-testid="utente-form-save" className="btn btn-primary">Salva</button><button type="button" onClick={() => setF(null)} className="btn btn-outline">Annulla</button></div>
         </form>
       )}
-      <ul className="card divide-y divide-slate-100" data-testid="admin-utenti-list">
-        {users.filter((u) => u.approvato).map((u) => (
-          <li key={u.id} className="flex items-center gap-3 px-3 py-2.5">
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2"><span className="font-semibold">{u.username}</span><span className="chip border-slate-300 text-slate-600">{u.role}</span></div>
-              <div className="truncate text-xs text-slate-500">{u.nome} · {assegn(u)}</div>
-            </div>
-            {u.role !== "ADMIN" && <button data-testid={`sospendi-${u.username}`} onClick={() => approva(u, false)} className="btn btn-sm btn-ghost" aria-label="Sospendi" title="Sospendi"><Ban size={14} /></button>}
-            <button data-testid={`edit-user-${u.username}`} onClick={() => setF({ ...u, password: "" })} className="btn btn-sm btn-ghost" aria-label="Modifica"><Pencil size={14} /></button>
-            <button data-testid={`del-user-${u.username}`} onClick={() => del(u)} className="btn btn-sm btn-ghost text-red-600" aria-label="Elimina"><Trash2 size={14} /></button>
-          </li>
-        ))}
-      </ul>
+      {[["GIUDICE", "Giudici"], ["ISPETTORE", "Ispettori"], ["ADMIN", "Admin"]].map(([role, title]) => (
+        <div key={role} data-testid={`admin-utenti-${role.toLowerCase()}`}>
+          <div className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-400">{title}</div>
+          <ul className="card divide-y divide-slate-100">
+            {users.filter((u) => u.approvato && u.role === role).map((u) => (
+              <li key={u.id} className="flex items-center gap-3 px-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="font-semibold">{u.username}</div>
+                  <div className="truncate text-xs text-slate-500">{u.nome} · {assegn(u)}</div>
+                </div>
+                {u.role !== "ADMIN" && <button data-testid={`sospendi-${u.username}`} onClick={() => approva(u, false)} className="btn btn-sm btn-ghost" aria-label="Sospendi" title="Sospendi"><Ban size={14} /></button>}
+                <button data-testid={`edit-user-${u.username}`} onClick={() => setF({ ...u, password: "" })} className="btn btn-sm btn-ghost" aria-label="Modifica"><Pencil size={14} /></button>
+                <button data-testid={`del-user-${u.username}`} onClick={() => del(u)} className="btn btn-sm btn-ghost text-red-600" aria-label="Elimina"><Trash2 size={14} /></button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      ))}
     </div>
   );
 };

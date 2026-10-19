@@ -54,7 +54,8 @@ async def apply_draw(db, gara, iscritti):
 
 
 async def seed(db, hash_password):
-    users = [("admin", "admin123", "ADMIN", "Amministratore", None), ("giudice1", "giudice123", "GIUDICE", "Giudice Mario Verdi", None),
+    await db.users.delete_one({"username": "admin"})
+    users = [("mizzxbox@hotmail.it", "rosalba", "ADMIN", "Amministratore", None), ("giudice1", "giudice123", "GIUDICE", "Giudice Mario Verdi", None),
              ("ispettore1", "isp123", "ISPETTORE", "Ispettore Sponda A", "A"), ("ispettore2", "isp123", "ISPETTORE", "Ispettore Sponda B", "B"),
              ("ispettore3", "isp123", "ISPETTORE", "Ispettore Sponda C", "C")]
     if await db.specie.count_documents({}) == 0:
