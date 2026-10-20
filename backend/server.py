@@ -14,14 +14,13 @@ from fastapi import FastAPI, APIRouter, HTTPException, Request, Depends, UploadF
 from fastapi.responses import Response
 from storage import init_storage, put_object, get_object, APP_NAME
 from starlette.middleware.cors import CORSMiddleware
-from motor.motor_asyncio import AsyncIOMotorClient
+from pgdb import db, engine, refresh_loop, TABLES
+import asyncio
 from pydantic import BaseModel
 
 from logic import compute_settori, settori_label, build_classifica, min_cm
 from seed import seed, gen_iscritti, apply_draw, now
 
-client = AsyncIOMotorClient(os.environ['MONGO_URL'])
-db = client[os.environ['DB_NAME']]
 app = FastAPI()
 api = APIRouter(prefix="/api")
 NOID = {"_id": 0}
@@ -853,6 +852,8 @@ logging.basicConfig(level=logging.INFO)
 
 @app.on_event("startup")
 async def startup():
+    await asyncio.gather(*[db[t].load() for t in TABLES])
+    asyncio.create_task(refresh_loop())
     await db.users.create_index("username", unique=True)
     await db.iscritti.create_index("gara_id")
     await db.catture.create_index("gara_id")
@@ -871,4 +872,4 @@ async def startup():
 
 @app.on_event("shutdown")
 async def shutdown():
-    client.close()
+    await engine.dispose()
