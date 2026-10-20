@@ -17,7 +17,7 @@ export default function Campionato() {
         <div className="mb-2 flex flex-wrap gap-1.5">
           <span className="chip border-[#0f3d56]/20 bg-[#0f3d56]/5 text-[#0f3d56]">{c.specialita}</span>
           <span className="chip border-slate-200 text-slate-500">{c.anno}</span>
-          <span className="chip border-slate-200 text-slate-500">{c.prove.length} prove · {c.scarti} {c.tipo_scarto === "mezzo" ? "mezzo scarto" : "scarto prova peggiore"}</span>
+          <span className="chip border-slate-200 text-slate-500">{c.prove.length} prove · {c.tipo_scarto === "mezzo" ? "mezzo scarto della peggiore" : "scarto prova peggiore"}</span>
         </div>
         <h1 className="text-3xl font-extrabold sm:text-4xl" data-testid="campionato-nome">{c.nome}</h1>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">

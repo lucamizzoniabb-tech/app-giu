@@ -676,7 +676,7 @@ async def classifica_generale(c):
             a["tot"][k] = float(r.get("tot") or 0)
             a["societa"] = r.get("societa") or a["societa"]
     out = []
-    sc = int(c.get("scarti") or 0) if len(prove) > int(c.get("scarti") or 0) else 0
+    sc = 1 if len(prove) > 1 else 0
     for a in atleti.values():
         pens = [p if p is not None else int(c.get("pen_assenza") or 11) for p in a["pen"]]
         scartate = sorted(range(len(pens)), key=lambda i: -pens[i])[:sc]
