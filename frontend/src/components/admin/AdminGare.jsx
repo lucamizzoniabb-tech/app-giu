@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Pencil, Trash2, Download, ExternalLink, Plus } from "lucide-react";
 import { toast } from "sonner";
 import { StatoChip } from "@/components/TopBar";
+import { FileFields, uploadFiles } from "@/components/Locandina";
 import { api, errMsg, get } from "@/lib/api";
 import { SPECIALITA, TIPI, STATI, fmtDate, downloadCSV } from "@/lib/constants";
 
@@ -12,6 +13,7 @@ export const AdminGare = () => {
   const [gare, setGare] = useState([]);
   const [giudici, setGiudici] = useState([]);
   const [f, setF] = useState(null);
+  const [files, setFiles] = useState({});
   const load = () => get("/gare").then(setGare);
   useEffect(() => { load(); get("/users").then((u) => setGiudici(u.filter((x) => x.role === "GIUDICE"))); }, []);
 
@@ -19,7 +21,9 @@ export const AdminGare = () => {
     e.preventDefault();
     const body = { ...f, durata_min: Number(f.durata_min) || 180, bonus_pesce: Number(f.bonus_pesce) || 0, preda_tecnica: Number(f.preda_tecnica) || 0, zone: Number(f.zone), max_iscritti: Number(f.max_iscritti), giudice_id: f.giudice_id || null };
     try {
-      f.id ? await api.put(`/gare/${f.id}`, body) : await api.post("/gare", body);
+      const { data } = f.id ? await api.put(`/gare/${f.id}`, body) : await api.post("/gare", body);
+      await uploadFiles(f.id || data.id, files);
+      setFiles({});
       toast.success("Gara salvata"); setF(null); load();
     } catch (er) { toast.error(errMsg(er)); }
   };
@@ -51,6 +55,7 @@ export const AdminGare = () => {
           <div><span className="lbl">Durata gara (min)</span><input data-testid="gara-form-durata" type="number" min="1" inputMode="numeric" className="fld" value={f.durata_min} onChange={(e) => setF({ ...f, durata_min: e.target.value })} /></div>
           <div><span className="lbl">Stato</span>{S("stato", STATI.map((s) => <option key={s}>{s}</option>))}</div>
           <div className="sm:col-span-2"><span className="lbl">Giudice</span>{S("giudice_id", [<option key="" value="">— Nessuno —</option>, ...giudici.map((u) => <option key={u.id} value={u.id}>{u.username} · {u.nome}</option>)])}</div>
+          <FileFields files={files} setFiles={setFiles} />
           <div className="flex items-end gap-2"><button data-testid="gara-form-save" className="btn btn-primary flex-1">Salva</button><button type="button" onClick={() => setF(null)} className="btn btn-outline">Annulla</button></div>
         </form>
       )}

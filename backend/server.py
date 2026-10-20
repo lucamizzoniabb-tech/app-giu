@@ -650,37 +650,43 @@ async def cartellino(gid: str, iid: str, body: dict, u=Depends(require("ADMIN", 
     return {"ok": True}
 
 
-# ---------- locandina
-@api.post("/gare/{gid}/locandina")
-async def upload_locandina(gid: str, file: UploadFile = File(...), u=Depends(require("ADMIN", "GIUDICE"))):
+# ---------- locandina / regolamento
+FILE_TYPES = {"locandina": {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf"}, "regolamento": {"application/pdf": "pdf"}}
+
+
+@api.post("/gare/{gid}/file/{kind}")
+async def upload_gara_file(gid: str, kind: str, file: UploadFile = File(...), u=Depends(require("ADMIN", "GIUDICE"))):
     await gara_judge(gid, u)
+    types = FILE_TYPES.get(kind)
+    if not types:
+        raise HTTPException(404, "Tipo file non valido")
     ct = file.content_type or ""
-    if ct not in ("image/jpeg", "image/png", "image/webp", "application/pdf"):
-        raise HTTPException(400, "Formato non supportato (JPG, PNG, WEBP o PDF)")
+    if ct not in types:
+        raise HTTPException(400, "Formato non supportato" + (" (solo PDF)" if kind == "regolamento" else " (JPG, PNG, WEBP o PDF)"))
     data = await file.read()
     if len(data) > 15 * 1024 * 1024:
         raise HTTPException(400, "File troppo grande (max 15 MB)")
-    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf"}[ct]
-    res = put_object(f"{APP_NAME}/locandine/{gid}-{uuid.uuid4().hex[:8]}.{ext}", data, ct)
-    await db.gare.update_one({"id": gid}, {"$set": {"locandina": {"path": res["path"], "type": ct, "v": now_ms()}}})
+    res = put_object(f"{APP_NAME}/{kind}/{gid}-{uuid.uuid4().hex[:8]}.{types[ct]}", data, ct)
+    await db.gare.update_one({"id": gid}, {"$set": {kind: {"path": res["path"], "type": ct, "v": now_ms(), "filename": file.filename}}})
     return {"ok": True}
 
 
-@api.delete("/gare/{gid}/locandina")
-async def del_locandina(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+@api.delete("/gare/{gid}/file/{kind}")
+async def del_gara_file(gid: str, kind: str, u=Depends(require("ADMIN", "GIUDICE"))):
     await gara_judge(gid, u)
-    await db.gare.update_one({"id": gid}, {"$set": {"locandina": None}})
+    if kind in FILE_TYPES:
+        await db.gare.update_one({"id": gid}, {"$set": {kind: None}})
     return {"ok": True}
 
 
-@api.get("/gare/{gid}/locandina")
-async def get_locandina(gid: str):
+@api.get("/gare/{gid}/file/{kind}")
+async def get_gara_file(gid: str, kind: str):
     g = await get_gara(gid)
-    loc = g.get("locandina")
-    if not loc:
-        raise HTTPException(404, "Nessuna locandina")
-    data, _ = get_object(loc["path"])
-    return Response(content=data, media_type=loc["type"], headers={"Cache-Control": "public, max-age=3600"})
+    f = g.get(kind) if kind in FILE_TYPES else None
+    if not f:
+        raise HTTPException(404, "File non presente")
+    data, _ = get_object(f["path"])
+    return Response(content=data, media_type=f["type"], headers={"Cache-Control": "public, max-age=3600", "Content-Disposition": f'inline; filename="{f.get("filename") or kind}"'})
 
 
 # ---------- atleti
