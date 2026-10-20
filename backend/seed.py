@@ -48,8 +48,8 @@ def gen_iscritti(gara_id, n, tipo):
     return out
 
 
-async def apply_draw(db, gara, iscritti, pilotato=True):
-    res, settori = sorteggio(iscritti, gara["tipo"], gara.get("zone", 1), pilotato)
+async def apply_draw(db, gara, iscritti, opts=None):
+    res, settori = sorteggio(iscritti, gara["tipo"], gara.get("zone", 1), opts)
     for r in res:
         await db.iscritti.update_one({"id": r["id"]}, {"$set": r})
     return settori

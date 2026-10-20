@@ -481,9 +481,9 @@ async def do_sorteggio(gid: str, body: Optional[dict] = None, u=Depends(require(
     if len(isc) < 2:
         raise HTTPException(400, "Servono almeno 2 iscritti")
     await db.catture.delete_many({"gara_id": gid})
-    pilotato = bool((body or {}).get("pilotato", True))
-    settori = await apply_draw(db, g, isc, pilotato)
-    await db.gare.update_one({"id": gid}, {"$set": {"settori": settori, "settori_label": settori_label(settori), "stato": "Sorteggiata", "pilotato": pilotato}})
+    opts = {k: bool((body or {}).get(k, True)) for k in ("societa", "consecutivi", "teste")}
+    settori = await apply_draw(db, g, isc, opts)
+    await db.gare.update_one({"id": gid}, {"$set": {"settori": settori, "settori_label": settori_label(settori), "stato": "Sorteggiata", "sorteggio_opzioni": opts}})
     return await gara_summary(await get_gara(gid))
 
 

@@ -57,7 +57,8 @@ def _arrange(units, pilotato):
     return out
 
 
-def sorteggio(iscritti, tipo, zone, pilotato=True):
+def sorteggio(iscritti, tipo, zone, opts=None):
+    o = {"societa": True, "consecutivi": True, "teste": True, **(opts or {})}
     iscritti = list(iscritti)
     random.shuffle(iscritti)
     settori = compute_settori(len(iscritti), zone, shuffle=True)
@@ -87,14 +88,14 @@ def sorteggio(iscritti, tipo, zone, pilotato=True):
                 used.add(idx)
                 used_z.add(sectors[idx]["zona"])
                 _place([m], idx, sectors)
-    elif pilotato:
+    elif o["teste"]:
         heads = sorted([i for i in singles if i.get("rank")], key=lambda x: x["rank"])[: len(sectors)]
         order = sorted(range(len(sectors)), key=lambda i: -sectors[i]["size"])
         for h, idx in zip(heads, order):
             singles.remove(h)
             _place([h], idx, sectors)
 
-    if pilotato:
+    if o["societa"]:
         freq = Counter(i.get("societa", "") for i in singles)
         singles.sort(key=lambda i: (-freq[i.get("societa", "")], random.random()))
         for m in singles:
@@ -106,7 +107,7 @@ def sorteggio(iscritti, tipo, zone, pilotato=True):
     result, colors, pos = [], {}, 1
     zone_bounds = {}
     for s in sectors:
-        flat = [(m, len(u) > 1) for u in _arrange(s["units"], pilotato) for m in u]
+        flat = [(m, len(u) > 1) for u in _arrange(s["units"], o["consecutivi"]) for m in u]
         start = pos
         for m, grouped in flat:
             color = None
