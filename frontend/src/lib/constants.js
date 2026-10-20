@@ -17,14 +17,17 @@ export const MISURA_STATO = {
   RIGETTATA: { t: "Rigettata", c: "border-red-200 bg-red-50 text-red-700" },
 };
 
-const L = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-export function settoriLabel(n) {
+export function settoriLabel(n, zone = 1) {
   if (!n) return "";
-  const full = Math.floor(n / 10), r = n % 10;
-  const out = [];
-  for (let i = 0; i < full; i++) out.push(`${L[i]}10`);
-  if (r) out.push(`${L[full]} TECNICO ${r}`);
-  return out.join(" ");
+  const nz = Math.max(1, Math.min(Number(zone) || 1, n));
+  const parts = [];
+  for (let z = 0; z < nz; z++) {
+    const m = Math.floor(n / nz) + (z < n % nz ? 1 : 0);
+    const full = Math.floor(m / 10), r = m % 10;
+    const t = [full ? `${full} da 10` : "", r ? `TECNICO ${r}` : ""].filter(Boolean).join(" + ");
+    parts.push(nz > 1 ? `Z${z + 1}: ${t}` : t);
+  }
+  return parts.join(" | ");
 }
 
 export const CM_START = 7;

@@ -7,11 +7,18 @@ GROUP_SIZE = {"Coppie 2": 2, "Box 4": 4, "Squadre 4": 4}
 BOX_COLORS = ["#2563eb", "#dc2626", "#16a34a", "#9333ea", "#ea580c", "#0891b2", "#db2777", "#65a30d", "#4f46e5", "#ca8a04", "#0d9488", "#be123c"]
 
 
-def compute_settori(n):
-    full, r = divmod(n, 10)
-    out = [{"lettera": LETTERS[i], "size": 10, "tecnico": False} for i in range(full)]
-    if r:
-        out.append({"lettera": LETTERS[full], "size": r, "tecnico": True})
+def compute_settori(n, zone=1, shuffle=False):
+    nz = max(1, min(int(zone or 1), n or 1))
+    base, extra = divmod(n, nz)
+    out = []
+    for z in range(nz):
+        full, r = divmod(base + (1 if z < extra else 0), 10)
+        zs = [{"size": 10, "tecnico": False} for _ in range(full)] + ([{"size": r, "tecnico": True}] if r else [])
+        if shuffle:
+            random.shuffle(zs)
+        out += [{**x, "zona": z + 1} for x in zs]
+    for i, x in enumerate(out):
+        x["lettera"] = LETTERS[i]
     return out
 
 
@@ -35,12 +42,26 @@ def _place(unit, idx, sectors):
         s["soc"][m.get("societa", "")] += 1
 
 
-def sorteggio(iscritti, tipo, zone):
+def _arrange(units, pilotato):
+    random.shuffle(units)
+    if not pilotato:
+        return units
+    out, rest = [], list(units)
+    while rest:
+        last = out[-1][-1].get("societa", "") if out else None
+        freq = Counter(u[0].get("societa", "") for u in rest)
+        cands = [u for u in rest if u[0].get("societa", "") != last] or rest
+        u = max(cands, key=lambda x: freq[x[0].get("societa", "")])
+        rest.remove(u)
+        out.append(u)
+    return out
+
+
+def sorteggio(iscritti, tipo, zone, pilotato=True):
     iscritti = list(iscritti)
     random.shuffle(iscritti)
-    settori = compute_settori(len(iscritti))
-    nz = max(1, min(int(zone or 1), len(settori)))
-    sectors = [{**s, "free": s["size"], "units": [], "soc": Counter(), "zona": i * nz // len(settori) + 1} for i, s in enumerate(settori)]
+    settori = compute_settori(len(iscritti), zone, shuffle=True)
+    sectors = [{**s, "free": s["size"], "units": [], "soc": Counter()} for s in settori]
     gsize = GROUP_SIZE.get(tipo)
     groups = defaultdict(list)
     singles = []
@@ -66,24 +87,26 @@ def sorteggio(iscritti, tipo, zone):
                 used.add(idx)
                 used_z.add(sectors[idx]["zona"])
                 _place([m], idx, sectors)
-    else:
+    elif pilotato:
         heads = sorted([i for i in singles if i.get("rank")], key=lambda x: x["rank"])[: len(sectors)]
         order = sorted(range(len(sectors)), key=lambda i: -sectors[i]["size"])
         for h, idx in zip(heads, order):
             singles.remove(h)
             _place([h], idx, sectors)
 
-    freq = Counter(i.get("societa", "") for i in singles)
-    singles.sort(key=lambda i: (-freq[i.get("societa", "")], random.random()))
-    for m in singles:
-        idx = _pick_sector(m, sectors)
-        _place([m], idx, sectors)
+    if pilotato:
+        freq = Counter(i.get("societa", "") for i in singles)
+        singles.sort(key=lambda i: (-freq[i.get("societa", "")], random.random()))
+        for m in singles:
+            _place([m], _pick_sector(m, sectors), sectors)
+    else:
+        for m in singles:
+            _place([m], next(i for i, x in enumerate(sectors) if x["free"] > 0), sectors)
 
     result, colors, pos = [], {}, 1
     zone_bounds = {}
     for s in sectors:
-        random.shuffle(s["units"])
-        flat = [(m, len(u) > 1) for u in s["units"] for m in u]
+        flat = [(m, len(u) > 1) for u in _arrange(s["units"], pilotato) for m in u]
         start = pos
         for m, grouped in flat:
             color = None
@@ -162,7 +185,26 @@ def build_classifica(gara, iscritti, catture, specie_map):
             r["pen"] = 1 + sum(1 for o in sr if o["tot"] > r["tot"])
         for k, r in enumerate(sr):
             r["pos"] = k + 1
-        settori.append({"lettera": let, "tecnico": let in tecnici, "rows": sr})
+        settori.append({"lettera": let, "tecnico": let in tecnici, "rows": sr, "integrati": []})
+    for k, s in enumerate(settori):
+        need = 10 - len(s["rows"])
+        if not s["tecnico"] or need <= 0:
+            continue
+        prev = settori[k - 1] if k > 0 and not settori[k - 1]["tecnico"] else None
+        nxt = settori[k + 1] if k + 1 < len(settori) and not settori[k + 1]["tecnico"] else None
+        if prev:
+            integ = sorted(prev["rows"], key=lambda r: r["picchetto"])[-need:]
+        elif nxt:
+            integ = sorted(nxt["rows"], key=lambda r: r["picchetto"])[:need]
+        else:
+            continue
+        comb = s["rows"] + integ
+        for r in s["rows"]:
+            r["pen"] = 1 + sum(1 for o in comb if o["tot"] > r["tot"])
+        s["rows"].sort(key=lambda r: (r["pen"], r["picchetto"]))
+        for j, r in enumerate(s["rows"]):
+            r["pos"] = j + 1
+        s["integrati"] = [{"nome": r["nome"], "settore": r["settore"], "picchetto": r["picchetto"], "tot": r["tot"], "pos_tec": 1 + sum(1 for o in comb if o["tot"] > r["tot"])} for r in integ]
     assoluta = sorted(rows, key=lambda r: (r.get("pen", 99), -r["tot"]))
     grp = defaultdict(list)
     for r in rows:

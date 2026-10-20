@@ -42,6 +42,7 @@ export default function GiudiceList() {
       <main className="mx-auto max-w-4xl px-4 py-8">
         <div className="mb-6 flex items-center gap-3">
           <h1 className="mr-auto text-3xl font-extrabold">Le mie gare</h1>
+          <Link to="/campionati" data-testid="giudice-campionati-btn" className="btn btn-outline">Campionati</Link>
           {!nuova && <button data-testid="giudice-nuova-gara-btn" onClick={() => setNuova(true)} className="btn btn-primary"><Plus size={16} />Nuova gara</button>}
         </div>
         {nuova && <NuovaGara onDone={() => { setNuova(false); load(); }} />}

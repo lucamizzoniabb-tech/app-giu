@@ -1,38 +1,46 @@
 import { useState } from "react";
-import { Plus, Trash2, Lock, LockOpen } from "lucide-react";
+import { Trash2, Lock, LockOpen } from "lucide-react";
 import { toast } from "sonner";
 import { api, errMsg } from "@/lib/api";
 import { fmt, MISURA_STATO, puntiPreview } from "@/lib/constants";
+import { NumPad } from "@/components/NumPad";
 
 const AddForm = ({ gara, iscritto, specie, surf, onDone }) => {
   const [sp, setSp] = useState("");
-  const [cm, setCm] = useState("");
-  const [peso, setPeso] = useState("");
+  const [val, setVal] = useState("");
+  const [pad, setPad] = useState(false);
+  const [busy, setBusy] = useState(false);
   const spObj = specie.find((s) => s.name === sp);
-  const prev = surf ? puntiPreview(spObj, cm, gara) : null;
-  const submit = async (e) => {
-    e.preventDefault();
+  const prev = surf ? puntiPreview(spObj, val, gara) : null;
+  const pk = iscritto.picchetto;
+  const submit = async () => {
+    if (surf && !sp) return toast.error("Seleziona la specie");
+    if (!val) return toast.error(surf ? "Inserisci i cm" : "Inserisci il peso");
+    setBusy(true);
     try {
-      await api.post(`/gare/${gara.id}/catture`, {
-        iscritto_id: iscritto.id, specie: surf ? sp : "Pesata", cm: surf && cm !== "" ? Number(cm) : null, peso: peso !== "" ? Number(peso) : null,
-      });
-      setCm(""); setPeso("");
+      await api.post(`/gare/${gara.id}/catture`, { iscritto_id: iscritto.id, specie: surf ? sp : "Pesata", cm: surf ? Number(val) : null, peso: surf ? null : Number(val) });
+      setVal(""); setPad(false);
       onDone();
     } catch (er) { toast.error(errMsg(er)); }
+    setBusy(false);
   };
   return (
-    <form onSubmit={submit} className="mt-2 flex flex-wrap gap-2">
-      {surf && (
-        <select required data-testid={`pesa-specie-${iscritto.picchetto}`} className="fld h-10 min-w-[8rem] flex-1" value={sp} onChange={(e) => setSp(e.target.value)}>
-          <option value="">Specie</option>
-          {specie.map((s) => <option key={s.name} value={s.name}>{s.name} ({s.min})</option>)}
-        </select>
-      )}
-      {surf && <input required data-testid={`pesa-cm-${iscritto.picchetto}`} className="fld h-10 w-20" type="number" step="1" min="0" inputMode="numeric" placeholder="cm" value={cm} onChange={(e) => setCm(e.target.value)} />}
-      {!surf && <input required data-testid={`pesa-peso-${iscritto.picchetto}`} className="fld h-10 w-24" type="number" step="1" min="0" inputMode="numeric" placeholder="peso g" value={peso} onChange={(e) => setPeso(e.target.value)} />}
-      <button data-testid={`pesa-add-${iscritto.picchetto}`} className="btn btn-primary h-10 px-3" aria-label="Aggiungi"><Plus size={16} /></button>
-      {prev && <div data-testid={`pesa-preview-${iscritto.picchetto}`} className={`w-full text-xs font-semibold ${prev.sotto ? "text-red-600" : "text-emerald-700"}`}>{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · preda tecnica ${prev.p} pt` : `${prev.p} punti`}</div>}
-    </form>
+    <div className="mt-2 space-y-2">
+      <div className="flex gap-2">
+        {surf && (
+          <select data-testid={`pesa-specie-${pk}`} className="fld h-11 min-w-0 flex-1" value={sp} onChange={(e) => { setSp(e.target.value); setPad(true); }}>
+            <option value="">Specie</option>
+            {specie.map((s) => <option key={s.name} value={s.name}>{s.name} ({s.min})</option>)}
+          </select>
+        )}
+        <button type="button" data-testid={`pesa-${surf ? "cm" : "peso"}-${pk}`} onClick={() => setPad(!pad)}
+          className={`num h-11 shrink-0 rounded-md border px-3 text-left text-lg font-bold ${surf ? "w-24" : "flex-1"} ${pad ? "border-[#0f3d56] ring-2 ring-[#0f3d56]/15" : "border-slate-300"}`}>
+          {val || <span className="text-sm font-normal text-slate-400">{surf ? "cm" : "peso g"}</span>}{val && <span className="ml-1 text-xs font-normal text-slate-400">{surf ? "cm" : "g"}</span>}
+        </button>
+      </div>
+      {prev && <div data-testid={`pesa-preview-${pk}`} className={`text-xs font-semibold ${prev.sotto ? "text-red-600" : "text-emerald-700"}`}>{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · preda tecnica ${prev.p} pt` : `${prev.p} punti`}</div>}
+      {pad && <NumPad value={val} onChange={setVal} max={surf ? 3 : 6} onOk={submit} busy={busy} testid={`numpad-${pk}`} />}
+    </div>
   );
 };
 
@@ -50,7 +58,16 @@ export const Card = ({ r, gara, specie, surf, locked, onChange, isp }) => {
       <div className="flex items-start gap-3">
         <div className="num w-10 text-2xl font-bold leading-none">{r.picchetto}</div>
         <div className="min-w-0 flex-1">
-          <div className="truncate font-semibold">{r.nome}</div>
+          <div className="flex items-center gap-1.5">
+            <span className="truncate font-semibold">{r.nome}</span>
+            {chiuso ? (
+              <span data-testid={`cartellino-chiuso-${r.picchetto}`} className="inline-flex shrink-0 items-center gap-1 rounded bg-slate-900 px-1.5 py-0.5 text-[10px] font-bold uppercase text-white"><Lock size={10} />Chiuso
+                {!isp && !locked && <button data-testid={`cartellino-riapri-${r.picchetto}`} onClick={() => cart(false)} className="ml-1 rounded bg-white/20 px-1 hover:bg-white/30" aria-label="Riapri cartellino"><LockOpen size={10} /></button>}
+              </span>
+            ) : !locked && (
+              <button data-testid={`cartellino-chiudi-${r.picchetto}`} onClick={() => cart(true)} title="Chiudi cartellino" aria-label="Chiudi cartellino" className="grid h-6 w-6 shrink-0 place-items-center rounded border border-slate-300 text-slate-400 hover:border-slate-900 hover:text-slate-900"><Lock size={11} /></button>
+            )}
+          </div>
           <div className="truncate text-xs text-slate-500">{r.settore} · {r.societa}{r.gruppo ? ` · ${r.gruppo}` : ""}</div>
         </div>
         <div className="text-right">
@@ -77,14 +94,6 @@ export const Card = ({ r, gara, specie, surf, locked, onChange, isp }) => {
             ))}
           </tbody>
         </table>
-      )}
-      {chiuso ? (
-        <div className="mt-2 flex items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-xs font-bold uppercase tracking-wide text-white" data-testid={`cartellino-chiuso-${r.picchetto}`}>
-          <Lock size={14} />Cartellino chiuso
-          {!isp && !locked && <button data-testid={`cartellino-riapri-${r.picchetto}`} onClick={() => cart(false)} className="ml-auto flex items-center gap-1 rounded bg-white/15 px-2 py-1 normal-case hover:bg-white/25"><LockOpen size={12} />Riapri</button>}
-        </div>
-      ) : !locked && (
-        <button data-testid={`cartellino-chiudi-${r.picchetto}`} onClick={() => cart(true)} className="btn btn-sm btn-outline mt-2 w-full"><Lock size={13} />Chiudi cartellino</button>
       )}
       {!locked && !(isp && chiuso) && <AddForm gara={gara} iscritto={r} specie={specie} surf={surf} onDone={() => { if (isp) toast.success(`Misura inviata · Pic ${r.picchetto}`); onChange(); }} />}
     </div>

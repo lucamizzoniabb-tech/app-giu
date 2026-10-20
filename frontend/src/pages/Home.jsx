@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { MapPin, Calendar, FileText, Radio, ExternalLink } from "lucide-react";
+import { MapPin, Calendar, FileText, Radio, ExternalLink, Trophy } from "lucide-react";
 import { TopBar, StatoChip } from "@/components/TopBar";
 import { get } from "@/lib/api";
 import { STATI, fmtDate, docUrl } from "@/lib/constants";
@@ -28,6 +28,26 @@ const GaraRow = ({ g, i }) => (
     </div>
   </div>
 );
+
+const Campionati = () => {
+  const [list, setList] = useState([]);
+  useEffect(() => { get("/campionati").then(setList); }, []);
+  if (!list.length) return null;
+  return (
+    <section className="mt-16" data-testid="campionati-section">
+      <h2 className="mb-4 text-2xl font-bold">Campionati</h2>
+      <div className="divide-y divide-slate-100 rounded-lg border border-slate-200">
+        {list.map((c) => (
+          <Link key={c.id} to={`/campionato/${c.id}`} data-testid={`campionato-link-${c.id}`} className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-slate-50">
+            <Trophy size={18} className="text-amber-500" />
+            <div className="flex-1"><div className="font-semibold">{c.nome}</div><div className="text-xs text-slate-500">{c.specialita} · {c.anno} · {c.prove.length} prove</div></div>
+            <span className="text-sm font-semibold text-[#0f3d56]">Classifica →</span>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
+};
 
 const Documenti = () => {
   const [docs, setDocs] = useState([]);
@@ -91,6 +111,7 @@ export default function Home() {
           {gare === null && <p className="text-sm text-slate-500">Caricamento…</p>}
           {list.map((g, i) => <GaraRow key={g.id} g={g} i={i} />)}
         </div>
+        <Campionati />
         <Documenti />
       </main>
     </div>

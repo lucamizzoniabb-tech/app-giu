@@ -11,6 +11,7 @@ export const IscrittiPanel = ({ gara, onChange }) => {
   const [f, setF] = useState(EMPTY);
   const [csv, setCsv] = useState("");
   const [busy, setBusy] = useState(false);
+  const [pilotato, setPilotato] = useState(true);
   const avviata = (gara.timer?.stato || "FERMO") !== "FERMO";
   const locked = gara.stato === "Conclusa" || avviata;
   const load = () => get(`/gare/${gara.id}/iscritti`).then(setList).catch(() => {});
@@ -35,7 +36,7 @@ export const IscrittiPanel = ({ gara, onChange }) => {
   return (
     <div className="space-y-5">
       <div className="rounded-lg border-2 border-slate-900 bg-slate-900 px-4 py-3 font-display text-sm font-bold text-white sm:text-base" data-testid="settori-banner">
-        {n} ISCRITTI {n ? `=> ${settoriLabel(n)} - NESSUN POSTO VUOTO` : ""}
+        {n} ISCRITTI {n ? `=> ${gara.settori_label || settoriLabel(n, gara.zone)} - NESSUN POSTO VUOTO` : ""}
       </div>
       {!locked && (
         <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
@@ -54,14 +55,18 @@ export const IscrittiPanel = ({ gara, onChange }) => {
               <button data-testid="demo-preset-btn" disabled={busy} onClick={() => window.confirm("Sostituire gli iscritti con il preset demo da 24?") && run(() => api.post(`/gare/${gara.id}/iscritti/demo`), "Preset demo caricato")} className="btn btn-sm btn-outline"><Users size={14} />Preset demo 24</button>
               <button data-testid="delete-all-btn" disabled={busy || !n} onClick={() => window.confirm("Eliminare tutti gli iscritti?") && run(() => api.delete(`/gare/${gara.id}/iscritti`), "Iscritti eliminati")} className="btn btn-sm btn-ghost text-red-600"><Trash2 size={14} />Svuota</button>
             </div>
-            <div className="flex items-end gap-2 border-t border-slate-100 pt-3">
+            <label className="flex items-start gap-2 border-t border-slate-100 pt-3 text-sm" data-testid="pilotato-label">
+              <input data-testid="pilotato-checkbox" type="checkbox" className="mt-0.5 h-5 w-5 shrink-0" checked={pilotato} onChange={(e) => setPilotato(e.target.checked)} />
+              <span><b>Sorteggio pilotato</b><span className="block text-xs text-slate-500">Evita stessa società/squadra nel settore, evita picchetti consecutivi della stessa società, distribuisce le teste di serie</span></span>
+            </label>
+            <div className="flex items-end gap-2">
               <div className="w-28">
                 <span className="lbl">Zone</span>
                 <select data-testid="zone-select" className="fld" value={gara.zone || 1} onChange={(e) => run(() => api.patch(`/gare/${gara.id}`, { zone: Number(e.target.value) }))}>
                   {[1, 2, 3, 4].map((z) => <option key={z} value={z}>{z}</option>)}
                 </select>
               </div>
-              <button data-testid="sorteggia-btn" disabled={busy || n < 2} onClick={() => (!gara.settori?.length || window.confirm("Rifare il sorteggio? Le misure verranno azzerate.")) && run(() => api.post(`/gare/${gara.id}/sorteggio`), "Sorteggio effettuato")} className="btn btn-lg btn-primary flex-1"><Shuffle size={18} />Sorteggia</button>
+              <button data-testid="sorteggia-btn" disabled={busy || n < 2} onClick={() => (!gara.settori?.length || window.confirm("Rifare il sorteggio? Le misure verranno azzerate.")) && run(() => api.post(`/gare/${gara.id}/sorteggio`, { pilotato }), pilotato ? "Sorteggio pilotato effettuato" : "Sorteggio casuale effettuato")} className="btn btn-lg btn-primary flex-1"><Shuffle size={18} />Sorteggia</button>
             </div>
           </div>
         </div>

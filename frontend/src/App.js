@@ -10,6 +10,9 @@ import GiudiceList from "@/pages/GiudiceList";
 import Giudice from "@/pages/Giudice";
 import Ispettore from "@/pages/Ispettore";
 import Schermo from "@/pages/Schermo";
+import Campionato from "@/pages/Campionato";
+import { CampionatiManager } from "@/components/CampionatiManager";
+import { TopBar } from "@/components/TopBar";
 
 function Protected({ roles, children }) {
   const { user } = useAuth();
@@ -28,6 +31,8 @@ function App() {
           <Route path="/gara/:id" element={<GaraPublic />} />
           <Route path="/login" element={<Login />} />
           <Route path="/schermo/:id" element={<Schermo />} />
+          <Route path="/campionato/:id" element={<Campionato />} />
+          <Route path="/campionati" element={<Protected roles={["ADMIN", "GIUDICE"]}><><TopBar /><main className="mx-auto max-w-6xl px-4 py-8"><h1 className="mb-6 text-3xl font-extrabold">Campionati</h1><CampionatiManager /></main></></Protected>} />
           <Route path="/admin" element={<Protected roles={["ADMIN"]}><Admin /></Protected>} />
           <Route path="/giudice" element={<Protected roles={["ADMIN", "GIUDICE"]}><GiudiceList /></Protected>} />
           <Route path="/giudice/:id" element={<Protected roles={["ADMIN", "GIUDICE"]}><Giudice /></Protected>} />

@@ -117,7 +117,7 @@ async def classifica(g, only_approved=True):
 
 async def gara_summary(g):
     n = await db.iscritti.count_documents({"gara_id": g["id"]})
-    label = g.get("settori_label") or (settori_label(compute_settori(n)) if n else "")
+    label = g.get("settori_label") or (settori_label(compute_settori(n, g.get("zone", 1))) if n else "")
     return {**g, "n_iscritti": n, "settori_preview": label, "server_now": now_ms()}
 
 
@@ -474,7 +474,7 @@ async def del_all_iscritti(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
 
 
 @api.post("/gare/{gid}/sorteggio")
-async def do_sorteggio(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+async def do_sorteggio(gid: str, body: Optional[dict] = None, u=Depends(require("ADMIN", "GIUDICE"))):
     g = await gara_judge(gid, u)
     await _check_open(g)
     check_lock(g)
@@ -482,8 +482,9 @@ async def do_sorteggio(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
     if len(isc) < 2:
         raise HTTPException(400, "Servono almeno 2 iscritti")
     await db.catture.delete_many({"gara_id": gid})
-    settori = await apply_draw(db, g, isc)
-    await db.gare.update_one({"id": gid}, {"$set": {"settori": settori, "settori_label": settori_label(settori), "stato": "Sorteggiata"}})
+    pilotato = bool((body or {}).get("pilotato", True))
+    settori = await apply_draw(db, g, isc, pilotato)
+    await db.gare.update_one({"id": gid}, {"$set": {"settori": settori, "settori_label": settori_label(settori), "stato": "Sorteggiata", "pilotato": pilotato}})
     return await gara_summary(await get_gara(gid))
 
 
@@ -623,6 +624,128 @@ async def cartellino(gid: str, iid: str, body: dict, u=Depends(require("ADMIN", 
         await gara_judge(gid, u)
     await _check_open(g)
     await db.iscritti.update_one({"id": iid}, {"$set": {"cartellino_chiuso": chiuso, "cartellino_da": u["username"], "cartellino_at": now()}})
+    return {"ok": True}
+
+
+# ---------- campionati
+class CampIn(BaseModel):
+    nome: str
+    specialita: str = "Surf Casting"
+    anno: int = 2026
+    scarti: int = 0
+    pen_assenza: int = 11
+
+
+class ProvaIn(BaseModel):
+    tipo: str
+    gara_id: Optional[str] = None
+    nome: str = ""
+    data: str = ""
+    risultati: List[dict] = []
+
+
+async def camp_owner(cid, u):
+    c = await db.campionati.find_one({"id": cid}, NOID)
+    if not c:
+        raise HTTPException(404, "Campionato non trovato")
+    if u["role"] != "ADMIN" and c.get("owner_id") != u["id"]:
+        raise HTTPException(403, "Campionato non tuo")
+    return c
+
+
+async def prova_risultati(p):
+    if p["tipo"] == "manuale":
+        return p.get("risultati", [])
+    g = await db.gare.find_one({"id": p["gara_id"]}, NOID)
+    if not g:
+        return []
+    c = await classifica(g)
+    return [{"nome": r["nome"], "societa": r["societa"], "settore": r["settore"], "pen": r["pen"], "tot": r["tot"]} for r in c["assoluta"]]
+
+
+async def classifica_generale(c):
+    prove = c.get("prove", [])
+    atleti = {}
+    for k, p in enumerate(prove):
+        for r in await prova_risultati(p):
+            key = " ".join(str(r.get("nome", "")).lower().split())
+            if not key:
+                continue
+            a = atleti.setdefault(key, {"nome": r["nome"], "societa": r.get("societa", ""), "pen": [None] * len(prove), "tot": [0] * len(prove)})
+            a["pen"][k] = int(float(r.get("pen") or 0))
+            a["tot"][k] = float(r.get("tot") or 0)
+            a["societa"] = r.get("societa") or a["societa"]
+    out = []
+    sc = int(c.get("scarti") or 0) if len(prove) > int(c.get("scarti") or 0) else 0
+    for a in atleti.values():
+        pens = [p if p is not None else int(c.get("pen_assenza") or 11) for p in a["pen"]]
+        scartate = sorted(range(len(pens)), key=lambda i: -pens[i])[:sc]
+        tot_pen = sum(p for i, p in enumerate(pens) if i not in scartate)
+        out.append({**a, "pen_eff": pens, "scartate": scartate, "tot_pen": tot_pen, "tot_punti": round(sum(t for i, t in enumerate(a["tot"]) if i not in scartate), 2), "presenze": sum(1 for p in a["pen"] if p is not None)})
+    out.sort(key=lambda a: (a["tot_pen"], -a["tot_punti"]))
+    for i, a in enumerate(out):
+        a["pos"] = i + 1
+    return out
+
+
+@api.get("/campionati")
+async def list_camp():
+    return await db.campionati.find({}, NOID).sort([("anno", -1), ("nome", 1)]).to_list(200)
+
+
+@api.get("/campionati/{cid}")
+async def get_camp(cid: str):
+    c = await db.campionati.find_one({"id": cid}, NOID)
+    if not c:
+        raise HTTPException(404, "Campionato non trovato")
+    return {"campionato": c, "classifica": await classifica_generale(c)}
+
+
+@api.post("/campionati")
+async def add_camp(body: CampIn, u=Depends(require("ADMIN", "GIUDICE"))):
+    c = {**body.model_dump(), "id": str(uuid.uuid4()), "owner_id": u["id"], "prove": [], "created_at": now()}
+    await db.campionati.insert_one(dict(c))
+    c.pop("_id", None)
+    return c
+
+
+@api.put("/campionati/{cid}")
+async def upd_camp(cid: str, body: CampIn, u=Depends(require("ADMIN", "GIUDICE"))):
+    await camp_owner(cid, u)
+    await db.campionati.update_one({"id": cid}, {"$set": body.model_dump()})
+    return {"ok": True}
+
+
+@api.delete("/campionati/{cid}")
+async def del_camp(cid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+    await camp_owner(cid, u)
+    await db.campionati.delete_one({"id": cid})
+    return {"ok": True}
+
+
+@api.post("/campionati/{cid}/prove")
+async def add_prova(cid: str, body: ProvaIn, u=Depends(require("ADMIN", "GIUDICE"))):
+    await camp_owner(cid, u)
+    p = {"id": str(uuid.uuid4()), "tipo": body.tipo}
+    if body.tipo == "app":
+        g = await get_gara(body.gara_id or "")
+        if g["stato"] != "Conclusa":
+            raise HTTPException(400, "La gara deve essere conclusa")
+        p.update({"gara_id": g["id"], "nome": g["nome"], "data": g["data"]})
+    elif body.tipo == "manuale":
+        if not body.nome.strip() or not body.risultati:
+            raise HTTPException(400, "Nome prova e risultati obbligatori")
+        p.update({"nome": body.nome.strip(), "data": body.data, "risultati": body.risultati})
+    else:
+        raise HTTPException(400, "Tipo non valido")
+    await db.campionati.update_one({"id": cid}, {"$push": {"prove": p}})
+    return p
+
+
+@api.delete("/campionati/{cid}/prove/{pid}")
+async def del_prova(cid: str, pid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+    await camp_owner(cid, u)
+    await db.campionati.update_one({"id": cid}, {"$pull": {"prove": {"id": pid}}})
     return {"ok": True}
 
 

@@ -40,6 +40,12 @@ const SettoreList = ({ s }) => (
           right={fmt(r.tot)} rightSub={`Pen ${r.pen}`} />
       ))}
     </ul>
+    {s.integrati?.length > 0 && (
+      <div className="border-t border-yellow-200 bg-yellow-50 px-3 py-2 text-xs text-yellow-900" data-testid={`integrati-${s.lettera}`}>
+        <div className="mb-1 font-bold uppercase tracking-wide">Integrati a 10 dal settore {s.integrati[0].settore}</div>
+        {s.integrati.map((x) => <div key={x.picchetto} className="flex justify-between"><span>{x.settore}{x.picchetto} · {x.nome}</span><span className="num">{fmt(x.tot)} · pos {x.pos_tec}</span></div>)}
+      </div>
+    )}
   </div>
 );
 
