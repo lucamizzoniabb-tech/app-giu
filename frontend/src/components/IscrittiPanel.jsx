@@ -3,6 +3,7 @@ import { Trash2, Shuffle, Users, Upload, Download } from "lucide-react";
 import { toast } from "sonner";
 import { api, errMsg, get } from "@/lib/api";
 import { settoriLabel, downloadCSV } from "@/lib/constants";
+import { DaAtleti, SquadreIndividuale } from "@/components/IscrittiExtra";
 
 const EMPTY = { nome: "", cognome: "", societa: "", provincia: "", gruppo: "", rank: "", esterno_prec: false };
 
@@ -73,6 +74,12 @@ export const IscrittiPanel = ({ gara, onChange }) => {
               <button data-testid="sorteggia-btn" disabled={busy || n < 2} onClick={() => (!gara.settori?.length || window.confirm("Rifare il sorteggio? Le misure verranno azzerate.")) && run(() => api.post(`/gare/${gara.id}/sorteggio`, opts), "Sorteggio effettuato")} className="btn btn-lg btn-primary flex-1"><Shuffle size={18} />Sorteggia</button>
             </div>
           </div>
+        </div>
+      )}
+      {(!locked || ["Individuale", "Società"].includes(gara.tipo)) && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          {!locked && <DaAtleti gara={gara} iscritti={list} onDone={() => { load(); onChange(); }} />}
+          {["Individuale", "Società"].includes(gara.tipo) && <SquadreIndividuale gara={gara} iscritti={list} locked={locked} onDone={() => { load(); onChange(); }} />}
         </div>
       )}
       <div className="card overflow-x-auto">

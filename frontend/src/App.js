@@ -12,6 +12,7 @@ import Ispettore from "@/pages/Ispettore";
 import Schermo from "@/pages/Schermo";
 import Campionato from "@/pages/Campionato";
 import { CampionatiManager } from "@/components/CampionatiManager";
+import { AtletiManager } from "@/components/AtletiManager";
 import { TopBar } from "@/components/TopBar";
 
 function Protected({ roles, children }) {
@@ -32,6 +33,7 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/schermo/:id" element={<Schermo />} />
           <Route path="/campionato/:id" element={<Campionato />} />
+          <Route path="/atleti" element={<Protected roles={["ADMIN", "GIUDICE"]}><><TopBar /><main className="mx-auto max-w-6xl px-4 py-8"><h1 className="mb-6 text-3xl font-extrabold">Database atleti</h1><AtletiManager /></main></></Protected>} />
           <Route path="/campionati" element={<Protected roles={["ADMIN", "GIUDICE"]}><><TopBar /><main className="mx-auto max-w-6xl px-4 py-8"><h1 className="mb-6 text-3xl font-extrabold">Campionati</h1><CampionatiManager /></main></></Protected>} />
           <Route path="/admin" element={<Protected roles={["ADMIN"]}><Admin /></Protected>} />
           <Route path="/giudice" element={<Protected roles={["ADMIN", "GIUDICE"]}><GiudiceList /></Protected>} />

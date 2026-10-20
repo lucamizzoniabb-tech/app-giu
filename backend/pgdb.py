@@ -5,7 +5,7 @@ import os
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 
-TABLES = ["users", "gare", "iscritti", "catture", "messaggi", "documenti", "specie", "inviti", "campionati"]
+TABLES = ["users", "gare", "iscritti", "catture", "messaggi", "documenti", "specie", "inviti", "campionati", "atleti"]
 
 engine = create_async_engine(
     os.environ["DATABASE_URL"].replace("postgresql://", "postgresql+asyncpg://"),

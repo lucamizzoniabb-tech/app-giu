@@ -101,3 +101,21 @@ INSERT INTO alembic_version (version_num) VALUES ('cf38faa9f7dd') RETURNING alem
 
 COMMIT;
 
+BEGIN;
+
+-- Running upgrade cf38faa9f7dd -> 791c5caa7909
+
+CREATE TABLE atleti (
+    id VARCHAR(80) NOT NULL, 
+    gara_id VARCHAR(80), 
+    data JSONB NOT NULL, 
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT now(), 
+    PRIMARY KEY (id)
+);
+
+CREATE INDEX ix_atleti_gara_id ON atleti (gara_id);
+
+UPDATE alembic_version SET version_num='791c5caa7909' WHERE alembic_version.version_num = 'cf38faa9f7dd';
+
+COMMIT;
+

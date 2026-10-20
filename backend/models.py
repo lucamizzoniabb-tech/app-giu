@@ -15,5 +15,5 @@ def _doc_table(name):
     })
 
 
-for _t in ["users", "gare", "iscritti", "catture", "messaggi", "documenti", "specie", "inviti", "campionati"]:
+for _t in ["users", "gare", "iscritti", "catture", "messaggi", "documenti", "specie", "inviti", "campionati", "atleti"]:
     globals()[_t.capitalize()] = _doc_table(_t)

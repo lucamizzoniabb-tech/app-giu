@@ -434,6 +434,15 @@ async def add_iscritti(gid: str, body: List[IscrittoIn], u=Depends(require("ADMI
     await _check_open(g)
     check_lock(g)
     docs = [{**b.model_dump(), "id": str(uuid.uuid4()), "gara_id": gid, "created_at": now()} for b in body if b.nome.strip()]
+    if g["tipo"] in ("Squadre 4", "Individuale", "Società"):
+        allg = await db.iscritti.find({"gara_id": gid}, NOID).to_list(2000) + docs
+        per = {}
+        for i in allg:
+            if i.get("gruppo"):
+                per.setdefault(i.get("societa", ""), set()).add(i["gruppo"])
+        troppo = [s for s, gs in per.items() if len(gs) > 2]
+        if troppo:
+            raise HTTPException(400, f"Massimo 2 squadre per società: {', '.join(troppo)}")
     if docs:
         await db.iscritti.insert_many([dict(d) for d in docs])
     return {"added": len(docs)}
@@ -623,6 +632,89 @@ async def cartellino(gid: str, iid: str, body: dict, u=Depends(require("ADMIN", 
         await gara_judge(gid, u)
     await _check_open(g)
     await db.iscritti.update_one({"id": iid}, {"$set": {"cartellino_chiuso": chiuso, "cartellino_da": u["username"], "cartellino_at": now()}})
+    return {"ok": True}
+
+
+# ---------- atleti
+class AtletaIn(BaseModel):
+    nome: str
+    cognome: str
+    societa: str
+    provincia: str = ""
+    tessera: str = ""
+
+
+@api.get("/atleti")
+async def list_atleti(u=Depends(require("ADMIN", "GIUDICE"))):
+    return await db.atleti.find({}, NOID).sort([("societa", 1), ("cognome", 1), ("nome", 1)]).to_list(5000)
+
+
+@api.post("/atleti")
+async def add_atleti(body: List[AtletaIn], u=Depends(require("ADMIN", "GIUDICE"))):
+    docs = [{**{k: v.strip() for k, v in b.model_dump().items()}, "id": str(uuid.uuid4()), "created_at": now()} for b in body if b.nome.strip() and b.societa.strip()]
+    if docs:
+        await db.atleti.insert_many(docs)
+    return {"added": len(docs)}
+
+
+@api.put("/atleti/{aid}")
+async def upd_atleta(aid: str, body: AtletaIn, u=Depends(require("ADMIN", "GIUDICE"))):
+    await db.atleti.update_one({"id": aid}, {"$set": body.model_dump()})
+    return {"ok": True}
+
+
+@api.delete("/atleti/{aid}")
+async def del_atleta(aid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+    await db.atleti.delete_one({"id": aid})
+    return {"ok": True}
+
+
+@api.post("/gare/{gid}/iscritti/da-atleti")
+async def iscrivi_atleti(gid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE"))):
+    g = await gara_judge(gid, u)
+    await _check_open(g)
+    check_lock(g)
+    gia = {i.get("atleta_id") for i in await db.iscritti.find({"gara_id": gid}, NOID).to_list(2000)}
+    docs = []
+    for a in await db.atleti.find({"id": {"$in": body.get("ids", [])}}, NOID).to_list(2000):
+        if a["id"] in gia:
+            continue
+        docs.append({"id": str(uuid.uuid4()), "gara_id": gid, "atleta_id": a["id"], "nome": a["nome"], "cognome": a["cognome"], "societa": a["societa"],
+                     "provincia": a.get("provincia", ""), "gruppo": "", "rank": None, "esterno_prec": False, "created_at": now()})
+    if docs:
+        await db.iscritti.insert_many(docs)
+    return {"added": len(docs)}
+
+
+@api.post("/gare/{gid}/squadre")
+async def crea_squadra(gid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE"))):
+    g = await gara_judge(gid, u)
+    await _check_open(g)
+    check_lock(g)
+    ids, nome = body.get("membri", []), (body.get("nome") or "").strip()
+    if len(set(ids)) != 4 or not nome:
+        raise HTTPException(400, "Una squadra deve avere un nome e 4 componenti")
+    isc = await db.iscritti.find({"gara_id": gid}, NOID).to_list(2000)
+    membri = [i for i in isc if i["id"] in ids]
+    if len(membri) != 4 or len({m["societa"] for m in membri}) != 1:
+        raise HTTPException(400, "I 4 componenti devono essere della stessa società")
+    if any(m.get("gruppo") for m in membri):
+        raise HTTPException(400, "Un componente è già in un'altra squadra")
+    soc = membri[0]["societa"]
+    if any(i.get("gruppo") == nome for i in isc):
+        raise HTTPException(400, "Nome squadra già usato")
+    if len({i["gruppo"] for i in isc if i.get("gruppo") and i["societa"] == soc}) >= 2:
+        raise HTTPException(400, f"{soc} ha già 2 squadre: massimo consentito")
+    await db.iscritti.update_many({"gara_id": gid, "id": {"$in": ids}}, {"$set": {"gruppo": nome}})
+    return {"ok": True}
+
+
+@api.delete("/gare/{gid}/squadre/{nome}")
+async def del_squadra(gid: str, nome: str, u=Depends(require("ADMIN", "GIUDICE"))):
+    g = await gara_judge(gid, u)
+    await _check_open(g)
+    check_lock(g)
+    await db.iscritti.update_many({"gara_id": gid, "gruppo": nome}, {"$set": {"gruppo": ""}})
     return {"ok": True}
 
 
