@@ -17,7 +17,7 @@ export default function Campionato() {
         <div className="mb-2 flex flex-wrap gap-1.5">
           <span className="chip border-[#0f3d56]/20 bg-[#0f3d56]/5 text-[#0f3d56]">{c.specialita}</span>
           <span className="chip border-slate-200 text-slate-500">{c.anno}</span>
-          <span className="chip border-slate-200 text-slate-500">{c.prove.length} prove · {c.scarti} scarti</span>
+          <span className="chip border-slate-200 text-slate-500">{c.prove.length} prove · {c.scarti} {c.tipo_scarto === "mezzo" ? "mezzo scarto" : "scarto prova peggiore"}</span>
         </div>
         <h1 className="text-3xl font-extrabold sm:text-4xl" data-testid="campionato-nome">{c.nome}</h1>
         <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
@@ -33,7 +33,7 @@ export default function Campionato() {
                 <div className="truncate text-xs text-slate-500">{a.societa} · {a.presenze}/{c.prove.length} presenze</div>
                 <div className="mt-1 flex flex-wrap gap-1">
                   {a.pen_eff.map((p, k) => (
-                    <span key={k} className={`num rounded px-1.5 text-[11px] ${a.scartate.includes(k) ? "bg-slate-100 text-slate-400 line-through" : a.pen[k] == null ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-700"}`}>P{k + 1}:{p}</span>
+                    <span key={k} className={`num rounded px-1.5 text-[11px] ${a.scartate.includes(k) ? (c.tipo_scarto === "mezzo" ? "bg-amber-50 text-amber-700" : "bg-slate-100 text-slate-400 line-through") : a.pen[k] == null ? "bg-red-50 text-red-600" : "bg-slate-100 text-slate-700"}`}>P{k + 1}:{p}{a.scartate.includes(k) && c.tipo_scarto === "mezzo" ? " ½" : ""}</span>
                   ))}
                 </div>
               </div>

@@ -632,6 +632,7 @@ class CampIn(BaseModel):
     specialita: str = "Surf Casting"
     anno: int = 2026
     scarti: int = 0
+    tipo_scarto: str = "intero"
     pen_assenza: int = 11
 
 
@@ -679,8 +680,10 @@ async def classifica_generale(c):
     for a in atleti.values():
         pens = [p if p is not None else int(c.get("pen_assenza") or 11) for p in a["pen"]]
         scartate = sorted(range(len(pens)), key=lambda i: -pens[i])[:sc]
-        tot_pen = sum(p for i, p in enumerate(pens) if i not in scartate)
-        out.append({**a, "pen_eff": pens, "scartate": scartate, "tot_pen": tot_pen, "tot_punti": round(sum(t for i, t in enumerate(a["tot"]) if i not in scartate), 2), "presenze": sum(1 for p in a["pen"] if p is not None)})
+        mezzo = c.get("tipo_scarto") == "mezzo"
+        tot_pen = sum(p for i, p in enumerate(pens) if i not in scartate) + (sum(pens[i] for i in scartate) / 2 if mezzo else 0)
+        tot_pen = int(tot_pen) if float(tot_pen).is_integer() else tot_pen
+        out.append({**a, "pen_eff": pens, "scartate": scartate, "tot_pen": tot_pen, "tot_punti": round(sum(t * (0.5 if mezzo else 0) if i in scartate else t for i, t in enumerate(a["tot"])), 2), "presenze": sum(1 for p in a["pen"] if p is not None)})
     out.sort(key=lambda a: (a["tot_pen"], -a["tot_punti"]))
     for i, a in enumerate(out):
         a["pos"] = i + 1

@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { api, errMsg, get } from "@/lib/api";
 import { SPECIALITA, fmtDate } from "@/lib/constants";
 
-const EMPTY = { nome: "", specialita: "Surf Casting", anno: new Date().getFullYear(), scarti: 0, pen_assenza: 11 };
+const EMPTY = { nome: "", specialita: "Surf Casting", anno: new Date().getFullYear(), scarti: 1, tipo_scarto: "intero", pen_assenza: 11 };
 
 const parseCsv = (txt) => txt.split(/\r?\n/).map((l) => l.split(/[;,\t]/).map((x) => x.trim())).filter((r) => r[0] && !/^nome/i.test(r[0]))
   .map(([nome, societa = "", settore = "", pen = "0", tot = "0"]) => ({ nome, societa, settore, pen: Number(pen) || 0, tot: Number(String(tot).replace(",", ".")) || 0 }));
@@ -59,6 +59,7 @@ const Settings = ({ c, onChange }) => {
   return (
     <div className="flex flex-wrap items-end gap-2 p-3">
       <div className="w-24"><span className="lbl">Scarti</span><input data-testid="camp-scarti" type="number" min="0" inputMode="numeric" className="fld" value={f.scarti} onChange={(e) => setF({ ...f, scarti: e.target.value })} /></div>
+<div className="w-44"><span className="lbl">Tipo scarto</span><select data-testid="camp-tipo-scarto" className="fld" value={f.tipo_scarto || "intero"} onChange={(e) => setF({ ...f, tipo_scarto: e.target.value })}><option value="intero">Scarto prova peggiore</option><option value="mezzo">Mezzo scarto della peggiore</option></select></div>
       <div className="w-32"><span className="lbl">Pen. assenza</span><input data-testid="camp-pen-assenza" type="number" min="0" inputMode="numeric" className="fld" value={f.pen_assenza} onChange={(e) => setF({ ...f, pen_assenza: e.target.value })} /></div>
       <button data-testid="camp-save" onClick={save} className="btn btn-outline">Salva</button>
     </div>
@@ -86,6 +87,7 @@ export const CampionatiManager = () => {
           <div><span className="lbl">Specialità</span><select data-testid="camp-specialita" className="fld" value={f.specialita} onChange={(e) => setF({ ...f, specialita: e.target.value })}>{SPECIALITA.map((s) => <option key={s}>{s}</option>)}</select></div>
           <div><span className="lbl">Anno</span><input data-testid="camp-anno" type="number" inputMode="numeric" className="fld" value={f.anno} onChange={(e) => setF({ ...f, anno: e.target.value })} /></div>
           <div><span className="lbl">Scarti</span><input data-testid="camp-form-scarti" type="number" min="0" inputMode="numeric" className="fld" value={f.scarti} onChange={(e) => setF({ ...f, scarti: e.target.value })} /></div>
+<div className="sm:col-span-2"><span className="lbl">Tipo scarto</span><select data-testid="camp-form-tipo-scarto" className="fld" value={f.tipo_scarto || "intero"} onChange={(e) => setF({ ...f, tipo_scarto: e.target.value })}><option value="intero">Scarto prova peggiore</option><option value="mezzo">Mezzo scarto della peggiore</option></select></div>
           <div className="flex gap-2 sm:col-span-5"><button data-testid="camp-create-btn" className="btn btn-primary">Crea</button><button type="button" onClick={() => setF(null)} className="btn btn-outline">Annulla</button></div>
         </form>
       )}
@@ -94,7 +96,7 @@ export const CampionatiManager = () => {
           <div className="flex items-center gap-2 p-3">
             <button onClick={() => setOpen(open === c.id ? null : c.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left" data-testid={`camp-toggle-${c.id}`}>
               <ChevronDown size={16} className={`shrink-0 transition-transform ${open === c.id ? "rotate-180" : ""}`} />
-              <div className="min-w-0"><div className="truncate font-bold">{c.nome}</div><div className="text-xs text-slate-500">{c.specialita} · {c.anno} · {c.prove.length} prove · scarti {c.scarti}</div></div>
+              <div className="min-w-0"><div className="truncate font-bold">{c.nome}</div><div className="text-xs text-slate-500">{c.specialita} · {c.anno} · {c.prove.length} prove · scarti {c.scarti}{c.tipo_scarto === "mezzo" ? " (½)" : ""}</div></div>
             </button>
             <Link to={`/campionato/${c.id}`} target="_blank" className="btn btn-sm btn-ghost" aria-label="Classifica" data-testid={`camp-open-${c.id}`}><ExternalLink size={14} /></Link>
             <button onClick={() => del(c)} className="btn btn-sm btn-ghost text-red-600" aria-label="Elimina" data-testid={`camp-del-${c.id}`}><Trash2 size={14} /></button>
