@@ -12,6 +12,7 @@ import { ClassificaView } from "@/components/ClassificaView";
 import { Chat } from "@/components/Chat";
 import { GaraTimer } from "@/components/GaraTimer";
 import { ListaPrede } from "@/components/ListaPrede";
+import { LocandinaUpload } from "@/components/Locandina";
 import { GiudiceIspettori } from "@/components/GiudiceIspettori";
 import { useAuth } from "@/context/AuthContext";
 import { api, errMsg, get, usePoll } from "@/lib/api";
@@ -74,6 +75,7 @@ export default function Giudice() {
             <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl" data-testid="giudice-gara-nome">{g.nome}</h1>
             <div className="text-sm text-slate-500">{fmtDate(g.data)} · {g.luogo}</div>
           </div>
+          <LocandinaUpload gara={g} onChange={reload} />
           <button data-testid="schermo-btn" onClick={() => window.open(`/schermo/${id}`, `schermo-${id}`, "popup,width=1600,height=900")} className="btn btn-outline"><Monitor size={15} />Schermo classifica</button>
           {!locked && <button data-testid="chiudi-gara-btn" onClick={chiudi} className="btn btn-outline"><Lock size={15} />Chiudi gara</button>}
         </div>

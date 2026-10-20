@@ -4,9 +4,11 @@ import { MapPin, Calendar, FileText, Radio, ExternalLink, Trophy } from "lucide-
 import { TopBar, StatoChip } from "@/components/TopBar";
 import { get } from "@/lib/api";
 import { STATI, fmtDate, docUrl } from "@/lib/constants";
+import { LocandinaThumb, locandinaUrl } from "@/components/Locandina";
 
 const GaraRow = ({ g, i }) => (
   <div className="card fade-up flex flex-col gap-3 p-4 transition-colors hover:border-slate-400 sm:flex-row sm:items-center" style={{ animationDelay: `${Math.min(i, 6) * 25}ms` }} data-testid={`gara-card-${g.id}`}>
+    <LocandinaThumb g={g} className="hidden h-24 w-[4.5rem] sm:block" />
     <div className="flex-1 min-w-0">
       <div className="mb-1.5 flex flex-wrap items-center gap-1.5">
         <span className="chip border-[#0f3d56]/20 bg-[#0f3d56]/5 text-[#0f3d56]">{g.specialita}</span>
@@ -102,6 +104,20 @@ export default function Home() {
             </Link>
           ))}
         </section>
+        {(gare || []).some((g) => g.locandina) && (
+          <section className="mb-10" data-testid="locandine-section">
+            <h2 className="mb-3 text-2xl font-bold">Locandine</h2>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {gare.filter((g) => g.locandina).map((g) => (
+                <a key={g.id} href={locandinaUrl(g)} target="_blank" rel="noreferrer" data-testid={`locandina-card-${g.id}`} className="w-40 shrink-0 sm:w-48">
+                  <LocandinaThumb g={g} className="pointer-events-none aspect-[3/4] w-full" />
+                  <div className="mt-1.5 line-clamp-2 text-sm font-semibold leading-tight">{g.nome}</div>
+                  <div className="text-xs text-slate-500">{fmtDate(g.data)}</div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
         <div className="mb-4 flex gap-2 overflow-x-auto pb-1">
           {["", ...STATI].map((s) => (
             <button key={s || "all"} data-testid={`filtro-stato-${s || "tutte"}`} onClick={() => setFiltro(s)} className={`btn btn-sm shrink-0 ${filtro === s ? "bg-slate-900 text-white" : "btn-outline"}`}>{s || "Tutte"}</button>

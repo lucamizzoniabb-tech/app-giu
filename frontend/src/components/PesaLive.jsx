@@ -95,7 +95,7 @@ export const Card = ({ r, gara, specie, surf, locked, onChange, isp }) => {
           </tbody>
         </table>
       )}
-      {!locked && !(isp && chiuso) && <AddForm gara={gara} iscritto={r} specie={specie} surf={surf} onDone={() => { if (isp) toast.success(`Misura inviata · Pic ${r.picchetto}`); onChange(); }} />}
+      {!locked && !chiuso && <AddForm gara={gara} iscritto={r} specie={specie} surf={surf} onDone={() => { if (isp) toast.success(`Misura inviata · Pic ${r.picchetto}`); onChange(); }} />}
     </div>
   );
 };

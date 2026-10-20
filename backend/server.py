@@ -614,12 +614,12 @@ async def add_cattura(gid: str, body: CatturaIn, u=Depends(require("ADMIN", "GIU
     if u["role"] == "ISPETTORE":
         if u.get("gara_id") != gid or i["settore"] not in settori_of(u):
             raise HTTPException(403, "Settore non assegnato")
-        if i.get("cartellino_chiuso"):
-            raise HTTPException(400, "Cartellino chiuso")
         stato = "IN_ATTESA"
     else:
         await gara_judge(gid, u)
         stato = "APPROVATA"
+    if i.get("cartellino_chiuso"):
+        raise HTTPException(400, "Cartellino chiuso: riapertura solo dal giudice")
     if body.cm is None and body.peso is None:
         raise HTTPException(400, "Inserisci misura o peso")
     if body.cm is not None:
@@ -648,6 +648,39 @@ async def cartellino(gid: str, iid: str, body: dict, u=Depends(require("ADMIN", 
     await _check_open(g)
     await db.iscritti.update_one({"id": iid}, {"$set": {"cartellino_chiuso": chiuso, "cartellino_da": u["username"], "cartellino_at": now()}})
     return {"ok": True}
+
+
+# ---------- locandina
+@api.post("/gare/{gid}/locandina")
+async def upload_locandina(gid: str, file: UploadFile = File(...), u=Depends(require("ADMIN", "GIUDICE"))):
+    await gara_judge(gid, u)
+    ct = file.content_type or ""
+    if ct not in ("image/jpeg", "image/png", "image/webp", "application/pdf"):
+        raise HTTPException(400, "Formato non supportato (JPG, PNG, WEBP o PDF)")
+    data = await file.read()
+    if len(data) > 15 * 1024 * 1024:
+        raise HTTPException(400, "File troppo grande (max 15 MB)")
+    ext = {"image/jpeg": "jpg", "image/png": "png", "image/webp": "webp", "application/pdf": "pdf"}[ct]
+    res = put_object(f"{APP_NAME}/locandine/{gid}-{uuid.uuid4().hex[:8]}.{ext}", data, ct)
+    await db.gare.update_one({"id": gid}, {"$set": {"locandina": {"path": res["path"], "type": ct, "v": now_ms()}}})
+    return {"ok": True}
+
+
+@api.delete("/gare/{gid}/locandina")
+async def del_locandina(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
+    await gara_judge(gid, u)
+    await db.gare.update_one({"id": gid}, {"$set": {"locandina": None}})
+    return {"ok": True}
+
+
+@api.get("/gare/{gid}/locandina")
+async def get_locandina(gid: str):
+    g = await get_gara(gid)
+    loc = g.get("locandina")
+    if not loc:
+        raise HTTPException(404, "Nessuna locandina")
+    data, _ = get_object(loc["path"])
+    return Response(content=data, media_type=loc["type"], headers={"Cache-Control": "public, max-age=3600"})
 
 
 # ---------- atleti

@@ -5,6 +5,7 @@ import { ClassificaView } from "@/components/ClassificaView";
 import { CampoGara } from "@/components/CampoGara";
 import { GaraTimer } from "@/components/GaraTimer";
 import { ListaPrede } from "@/components/ListaPrede";
+import { LocandinaThumb } from "@/components/Locandina";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { get, usePoll } from "@/lib/api";
 import { fmtDate } from "@/lib/constants";
@@ -26,7 +27,10 @@ export default function GaraPublic() {
           <span className="chip border-slate-200 text-slate-500">{g.tipo}</span>
           {g.stato === "Conclusa" && <span className="chip border-emerald-300 bg-emerald-50 text-emerald-800" data-testid="classifica-definitiva">Classifica definitiva</span>}
         </div>
-        <h1 className="text-3xl font-extrabold sm:text-4xl" data-testid="public-gara-nome">{g.nome}</h1>
+        <div className="flex items-start gap-4">
+          <h1 className="flex-1 text-3xl font-extrabold sm:text-4xl" data-testid="public-gara-nome">{g.nome}</h1>
+          <LocandinaThumb g={g} className="h-28 w-20" />
+        </div>
         <div className="mt-2 flex flex-wrap gap-4 text-sm text-slate-500">
           <span className="flex items-center gap-1"><Calendar size={14} />{fmtDate(g.data)}</span>
           <span className="flex items-center gap-1"><MapPin size={14} />{g.luogo}</span>
