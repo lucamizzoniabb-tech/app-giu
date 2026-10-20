@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { ImagePlus, Trash2, FileText, BookOpen } from "lucide-react";
+import { ImagePlus, Trash2, FileText, BookOpen, Fish } from "lucide-react";
 import { toast } from "sonner";
 import { api, API, errMsg } from "@/lib/api";
 
@@ -12,9 +12,13 @@ export const uploadGaraFile = async (gid, kind, file) => {
   await api.post(`/gare/${gid}/file/${kind}`, fd);
 };
 
-export const LocandinaThumb = ({ g, className = "" }) => {
+export const LocandinaThumb = ({ g, className = "", placeholder }) => {
   const url = locandinaUrl(g);
-  if (!url) return null;
+  if (!url) return placeholder ? (
+    <div data-testid={`locandina-empty-${g.id}`} className={`grid shrink-0 place-items-center rounded-md border border-dashed border-slate-300 bg-slate-50 text-slate-300 ${className}`}>
+      <div className="text-center"><Fish size={26} className="mx-auto" /><span className="text-[10px] font-bold uppercase tracking-wider">Locandina</span></div>
+    </div>
+  ) : null;
   return (
     <a href={url} target="_blank" rel="noreferrer" data-testid={`locandina-${g.id}`} className={`block shrink-0 overflow-hidden rounded-md border border-slate-200 bg-slate-50 ${className}`}>
       {g.locandina.type === "application/pdf"
