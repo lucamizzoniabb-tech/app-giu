@@ -443,9 +443,24 @@ async def add_iscritti(gid: str, body: List[IscrittoIn], u=Depends(require("ADMI
         troppo = [s for s, gs in per.items() if len(gs) > 2]
         if troppo:
             raise HTTPException(400, f"Massimo 2 squadre per società: {', '.join(troppo)}")
+    atleti = await db.atleti.find({}, NOID).to_list(10000)
+    key = lambda x: (x.get("nome", "").strip().lower(), x.get("cognome", "").strip().lower(), x.get("societa", "").strip().lower())  # noqa: E731
+    idx = {key(a): a["id"] for a in atleti}
+    nuovi = []
+    for d in docs:
+        if not d.get("societa", "").strip():
+            continue
+        k = key(d)
+        if k not in idx:
+            a = {"id": str(uuid.uuid4()), "nome": d["nome"].strip(), "cognome": d["cognome"].strip(), "societa": d["societa"].strip(), "provincia": d.get("provincia", ""), "tessera": "", "created_at": now()}
+            idx[k] = a["id"]
+            nuovi.append(a)
+        d["atleta_id"] = idx[k]
+    if nuovi:
+        await db.atleti.insert_many(nuovi)
     if docs:
         await db.iscritti.insert_many([dict(d) for d in docs])
-    return {"added": len(docs)}
+    return {"added": len(docs), "nuovi_atleti": len(nuovi)}
 
 
 @api.post("/gare/{gid}/iscritti/demo")

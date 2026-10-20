@@ -40,19 +40,9 @@ export const IscrittiPanel = ({ gara, onChange }) => {
         {n} ISCRITTI {n ? `=> ${gara.settori_label || settoriLabel(n, gara.zone)} - NESSUN POSTO VUOTO` : ""}
       </div>
       {!locked && (
-        <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-          <form onSubmit={add} className="card grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
-            {I("nome", "Nome", { required: true })}{I("cognome", "Cognome", { required: true })}{I("societa", "Società")}
-            {I("provincia", "Prov.")}{I("gruppo", "Squadra/Box/Coppia")}{I("rank", "Rank", { type: "number", inputMode: "numeric" })}
-            <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-1">
-              <input data-testid="iscritto-esterno-prec-checkbox" type="checkbox" className="h-5 w-5" checked={f.esterno_prec} onChange={(e) => setF({ ...f, esterno_prec: e.target.checked })} /> Esterno precedente
-            </label>
-            <button data-testid="iscritto-add-btn" disabled={busy} className="btn btn-primary col-span-2">Aggiungi</button>
-          </form>
+        <div>
           <div className="card space-y-2 p-3">
-            <textarea data-testid="csv-textarea" rows={3} className="fld font-mono text-xs" placeholder="Nome,Cognome,Società,Provincia,Squadra" value={csv} onChange={(e) => setCsv(e.target.value)} />
             <div className="flex flex-wrap gap-2">
-              <button data-testid="csv-import-btn" disabled={busy || !csv.trim()} onClick={importCsv} className="btn btn-sm btn-outline"><Upload size={14} />Importa CSV</button>
               <button data-testid="demo-preset-btn" disabled={busy} onClick={() => window.confirm("Sostituire gli iscritti con il preset demo da 24?") && run(() => api.post(`/gare/${gara.id}/iscritti/demo`), "Preset demo caricato")} className="btn btn-sm btn-outline"><Users size={14} />Preset demo 24</button>
               <button data-testid="delete-all-btn" disabled={busy || !n} onClick={() => window.confirm("Eliminare tutti gli iscritti?") && run(() => api.delete(`/gare/${gara.id}/iscritti`), "Iscritti eliminati")} className="btn btn-sm btn-ghost text-red-600"><Trash2 size={14} />Svuota</button>
             </div>
@@ -102,6 +92,25 @@ export const IscrittiPanel = ({ gara, onChange }) => {
           </tbody>
         </table>
       </div>
+      {!locked && (
+        <div className="space-y-2" data-testid="aggiungi-concorrente">
+          <span className="lbl">Aggiungi concorrente (salvato anche nel database atleti)</span>
+          <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
+            <form onSubmit={add} className="card grid grid-cols-2 gap-2 p-3 sm:grid-cols-3">
+            {I("nome", "Nome", { required: true })}{I("cognome", "Cognome", { required: true })}{I("societa", "Società")}
+            {I("provincia", "Prov.")}{I("gruppo", "Squadra/Box/Coppia")}{I("rank", "Rank", { type: "number", inputMode: "numeric" })}
+            <label className="col-span-2 flex items-center gap-2 text-sm sm:col-span-1">
+              <input data-testid="iscritto-esterno-prec-checkbox" type="checkbox" className="h-5 w-5" checked={f.esterno_prec} onChange={(e) => setF({ ...f, esterno_prec: e.target.checked })} /> Esterno precedente
+            </label>
+            <button data-testid="iscritto-add-btn" disabled={busy} className="btn btn-primary col-span-2">Aggiungi</button>
+          </form>
+            <div className="card space-y-2 p-3">
+              <textarea data-testid="csv-textarea" rows={3} className="fld font-mono text-xs" placeholder="Nome,Cognome,Società,Provincia,Squadra" value={csv} onChange={(e) => setCsv(e.target.value)} />
+              <button data-testid="csv-import-btn" disabled={busy || !csv.trim()} onClick={importCsv} className="btn btn-sm btn-outline"><Upload size={14} />Importa CSV</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
