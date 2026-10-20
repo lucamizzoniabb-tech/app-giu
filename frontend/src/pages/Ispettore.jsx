@@ -67,10 +67,11 @@ export default function Ispettore() {
       return { ...c, punti: surf ? pv?.p ?? 0 : Number(c.peso || 0), dettaglio: pv ? { sotto: pv.sotto, tabella: pv.tab, bonus: pv.bonus } : null };
     });
     const ok = cs.filter((c) => c.stato === "APPROVATA");
-    return { id: i.id, picchetto: i.picchetto, nome: `${i.nome} ${i.cognome}`, settore: i.settore, societa: i.societa, gruppo: i.gruppo, colore: i.colore,
+    return { id: i.id, picchetto: i.picchetto, nome: `${i.nome} ${i.cognome}`, settore: i.settore, societa: i.societa, gruppo: i.gruppo, colore: i.colore, cartellino_chiuso: i.cartellino_chiuso,
       catture: cs, n_pesci: ok.length, tot: ok.reduce((t, c) => t + c.punti, 0) };
   });
-  const tec = g.settori?.find((s) => s.lettera === settore)?.tecnico;
+  const sett = data.settori || [settore];
+  const tec = g.settori?.some((s) => s.tecnico && sett.includes(s.lettera));
 
   return (
     <div className="min-h-screen">
@@ -78,8 +79,8 @@ export default function Ispettore() {
       <main className="mx-auto max-w-2xl px-4 py-5">
         <Inviti inviti={data.inviti} onDone={reload} />
         <div className="mb-4 flex items-center gap-3">
-          <div className={`num grid h-14 w-14 place-items-center rounded-lg text-2xl font-bold ${tec ? "bg-yellow-300" : "bg-slate-900 text-white"}`} data-testid="isp-settore">{settore}</div>
-          <div className="min-w-0"><div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">Settore {settore}{tec && " tecnico"}</div><div className="truncate font-bold">{g.nome}</div></div>
+          <div className={`num grid h-14 w-14 place-items-center rounded-lg text-2xl font-bold ${tec ? "bg-yellow-300" : "bg-slate-900 text-white"}`} data-testid="isp-settore">{sett.join("")}</div>
+          <div className="min-w-0"><div className="text-[11px] font-bold uppercase tracking-widest text-slate-400">{sett.length > 1 ? "Settori" : "Settore"} {sett.join(", ")}{tec && " · tecnico"}</div><div className="truncate font-bold">{g.nome}</div></div>
         </div>
         <div className="mb-4"><GaraTimer gara={g} compact /></div>
         {g.stato === "Conclusa" && <p className="mb-3 rounded-md bg-slate-100 px-3 py-2 text-sm" data-testid="isp-gara-chiusa">Gara conclusa.</p>}

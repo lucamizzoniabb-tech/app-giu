@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Lock, LockOpen } from "lucide-react";
 import { toast } from "sonner";
 import { api, errMsg } from "@/lib/api";
 import { fmt, MISURA_STATO, puntiPreview } from "@/lib/constants";
@@ -40,6 +40,11 @@ export const Card = ({ r, gara, specie, surf, locked, onChange, isp }) => {
   const del = async (id) => {
     try { await api.delete(`/catture/${id}`); onChange(); } catch (er) { toast.error(errMsg(er)); }
   };
+  const cart = async (chiuso) => {
+    if (chiuso && !window.confirm(`Chiudere il cartellino di ${r.nome} (Pic ${r.picchetto})?${isp ? " Non potrai più inserire prede." : ""}`)) return;
+    try { await api.post(`/gare/${gara.id}/iscritti/${r.id}/cartellino`, { chiuso }); toast.success(chiuso ? "Cartellino chiuso" : "Cartellino riaperto"); onChange(); } catch (er) { toast.error(errMsg(er)); }
+  };
+  const chiuso = r.cartellino_chiuso;
   return (
     <div className="card p-3" data-testid={`pesa-card-${r.picchetto}`} style={r.colore ? { borderLeft: `5px solid ${r.colore}` } : undefined}>
       <div className="flex items-start gap-3">
@@ -73,7 +78,15 @@ export const Card = ({ r, gara, specie, surf, locked, onChange, isp }) => {
           </tbody>
         </table>
       )}
-      {!locked && <AddForm gara={gara} iscritto={r} specie={specie} surf={surf} onDone={() => { if (isp) toast.success(`Misura inviata · Pic ${r.picchetto}`); onChange(); }} />}
+      {chiuso ? (
+        <div className="mt-2 flex items-center gap-2 rounded-md bg-slate-900 px-3 py-2 text-xs font-bold uppercase tracking-wide text-white" data-testid={`cartellino-chiuso-${r.picchetto}`}>
+          <Lock size={14} />Cartellino chiuso
+          {!isp && !locked && <button data-testid={`cartellino-riapri-${r.picchetto}`} onClick={() => cart(false)} className="ml-auto flex items-center gap-1 rounded bg-white/15 px-2 py-1 normal-case hover:bg-white/25"><LockOpen size={12} />Riapri</button>}
+        </div>
+      ) : !locked && (
+        <button data-testid={`cartellino-chiudi-${r.picchetto}`} onClick={() => cart(true)} className="btn btn-sm btn-outline mt-2 w-full"><Lock size={13} />Chiudi cartellino</button>
+      )}
+      {!locked && !(isp && chiuso) && <AddForm gara={gara} iscritto={r} specie={specie} surf={surf} onDone={() => { if (isp) toast.success(`Misura inviata · Pic ${r.picchetto}`); onChange(); }} />}
     </div>
   );
 };

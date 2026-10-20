@@ -82,6 +82,28 @@ async def gara_judge(gid, u):
     raise HTTPException(403, "Gara non assegnata")
 
 
+def settori_of(u):
+    return [x for x in (u.get("settore") or "").split(",") if x]
+
+
+def avviata(g):
+    return (g.get("timer") or {}).get("stato", "FERMO") != "FERMO"
+
+
+def check_lock(g):
+    if avviata(g):
+        raise HTTPException(400, "Gara avviata: impostazioni, iscritti e sorteggio bloccati")
+
+
+async def check_single_live(g, giudice_id=None):
+    gid = giudice_id or g.get("giudice_id")
+    if not gid:
+        return
+    other = await db.gare.find_one({"giudice_id": gid, "stato": "In Corso Live", "id": {"$ne": g["id"]}}, NOID)
+    if other:
+        raise HTTPException(400, f"Il giudice ha già una gara live: {other['nome']}")
+
+
 async def specie_map():
     return {s["name"]: s for s in await db.specie.find({}, NOID).to_list(200)}
 
@@ -266,8 +288,12 @@ async def create_gara(body: GaraIn, u=Depends(require("ADMIN", "GIUDICE"))):
 
 @api.put("/gare/{gid}")
 async def update_gara(gid: str, body: GaraIn, u=Depends(require("ADMIN", "GIUDICE"))):
-    await gara_judge(gid, u)
+    g = await gara_judge(gid, u)
     upd = body.model_dump(exclude={"giudice_id"} if u["role"] == "GIUDICE" else None)
+    if avviata(g) and any(upd.get(k) != g.get(k) for k in ("specialita", "tipo", "zone", "max_iscritti", "durata_min", "bonus_pesce", "preda_tecnica")):
+        check_lock(g)
+    if upd.get("stato") == "In Corso Live":
+        await check_single_live(g, upd.get("giudice_id") or g.get("giudice_id"))
     await db.gare.update_one({"id": gid}, {"$set": upd})
     return await get_gara(gid)
 
@@ -386,10 +412,8 @@ async def my_gare(u=Depends(require("ADMIN", "GIUDICE"))):
 @api.patch("/gare/{gid}")
 async def patch_gara(gid: str, body: GaraPatch, u=Depends(require("ADMIN", "GIUDICE"))):
     g = await gara_judge(gid, u)
+    check_lock(g)
     upd = body.model_dump(exclude_none=True)
-    t = g.get("timer") or {}
-    if body.durata_min and t.get("stato") in ("IN_CORSO", "PAUSA"):
-        upd["timer.durata_ms"] = body.durata_min * 60000
     await db.gare.update_one({"id": gid}, {"$set": upd})
     return await get_gara(gid)
 
@@ -409,6 +433,7 @@ async def _check_open(g):
 async def add_iscritti(gid: str, body: List[IscrittoIn], u=Depends(require("ADMIN", "GIUDICE"))):
     g = await gara_judge(gid, u)
     await _check_open(g)
+    check_lock(g)
     docs = [{**b.model_dump(), "id": str(uuid.uuid4()), "gara_id": gid, "created_at": now()} for b in body if b.nome.strip()]
     if docs:
         await db.iscritti.insert_many([dict(d) for d in docs])
@@ -419,6 +444,7 @@ async def add_iscritti(gid: str, body: List[IscrittoIn], u=Depends(require("ADMI
 async def demo_iscritti(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
     g = await gara_judge(gid, u)
     await _check_open(g)
+    check_lock(g)
     await db.iscritti.delete_many({"gara_id": gid})
     await db.catture.delete_many({"gara_id": gid})
     await db.iscritti.insert_many(gen_iscritti(gid, 24, g["tipo"]))
@@ -430,6 +456,7 @@ async def demo_iscritti(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
 async def del_iscritto(gid: str, iid: str, u=Depends(require("ADMIN", "GIUDICE"))):
     g = await gara_judge(gid, u)
     await _check_open(g)
+    check_lock(g)
     await db.iscritti.delete_one({"id": iid, "gara_id": gid})
     await db.catture.delete_many({"iscritto_id": iid})
     return {"ok": True}
@@ -439,6 +466,7 @@ async def del_iscritto(gid: str, iid: str, u=Depends(require("ADMIN", "GIUDICE")
 async def del_all_iscritti(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
     g = await gara_judge(gid, u)
     await _check_open(g)
+    check_lock(g)
     await db.iscritti.delete_many({"gara_id": gid})
     await db.catture.delete_many({"gara_id": gid})
     await db.gare.update_one({"id": gid}, {"$set": {"settori": [], "settori_label": "", "stato": "Iscrizioni Aperte"}})
@@ -449,6 +477,7 @@ async def del_all_iscritti(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
 async def do_sorteggio(gid: str, u=Depends(require("ADMIN", "GIUDICE"))):
     g = await gara_judge(gid, u)
     await _check_open(g)
+    check_lock(g)
     isc = await db.iscritti.find({"gara_id": gid}, NOID).to_list(1000)
     if len(isc) < 2:
         raise HTTPException(400, "Servono almeno 2 iscritti")
@@ -466,6 +495,8 @@ async def set_stato(gid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE"))
         raise HTTPException(400, "Stato non valido")
     if g["stato"] == "Conclusa" and u["role"] != "ADMIN":
         raise HTTPException(403, "Solo l'Admin può riaprire una gara conclusa")
+    if stato == "In Corso Live":
+        await check_single_live(g)
     await db.gare.update_one({"id": gid}, {"$set": {"stato": stato}})
     return {"ok": True}
 
@@ -475,7 +506,11 @@ async def timer(gid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE"))):
     g = await gara_judge(gid, u)
     t = g.get("timer") or {"stato": "FERMO"}
     az, n = body.get("azione"), now_ms()
-    if az == "start" and t["stato"] in ("FERMO", "TERMINATO"):
+    if az == "start" and t["stato"] == "FERMO":
+        await _check_open(g)
+        if not g.get("settori"):
+            raise HTTPException(400, "Effettua prima il sorteggio")
+        await check_single_live(g)
         t = {"stato": "IN_CORSO", "start_ms": n, "pausa_ms": 0, "paused_at": None, "durata_ms": int(g.get("durata_min") or 180) * 60000}
         if g["stato"] in ("Sorteggiata", "Iscrizioni Aperte") and g.get("settori"):
             await db.gare.update_one({"id": gid}, {"$set": {"stato": "In Corso Live"}})
@@ -485,7 +520,7 @@ async def timer(gid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE"))):
         t.update({"stato": "IN_CORSO", "pausa_ms": t["pausa_ms"] + n - t["paused_at"], "paused_at": None})
     elif az == "stop" and t["stato"] in ("IN_CORSO", "PAUSA"):
         t.update({"stato": "TERMINATO", "stop_at": n})
-    elif az == "reset":
+    elif az == "reset" and u["role"] == "ADMIN":
         t = {"stato": "FERMO"}
     else:
         raise HTTPException(400, "Azione non valida")
@@ -553,8 +588,10 @@ async def add_cattura(gid: str, body: CatturaIn, u=Depends(require("ADMIN", "GIU
     if not i or not i.get("settore"):
         raise HTTPException(400, "Concorrente non valido")
     if u["role"] == "ISPETTORE":
-        if u.get("gara_id") != gid or u.get("settore") != i["settore"]:
+        if u.get("gara_id") != gid or i["settore"] not in settori_of(u):
             raise HTTPException(403, "Settore non assegnato")
+        if i.get("cartellino_chiuso"):
+            raise HTTPException(400, "Cartellino chiuso")
         stato = "IN_ATTESA"
     else:
         await gara_judge(gid, u)
@@ -565,9 +602,28 @@ async def add_cattura(gid: str, body: CatturaIn, u=Depends(require("ADMIN", "GIU
         body.cm = int(body.cm)
     c = {**body.model_dump(), "id": str(uuid.uuid4()), "gara_id": gid, "settore": i["settore"], "stato": stato, "motivo": "", "inviato_da": u["username"], "origine": u["role"], "created_at": now()}
     await db.catture.insert_one(dict(c))
-    if g["stato"] == "Sorteggiata":
+    if g["stato"] == "Sorteggiata" and not await db.gare.find_one({"giudice_id": g.get("giudice_id"), "stato": "In Corso Live", "id": {"$ne": gid}}):
         await db.gare.update_one({"id": gid}, {"$set": {"stato": "In Corso Live"}})
     return c
+
+
+@api.post("/gare/{gid}/iscritti/{iid}/cartellino")
+async def cartellino(gid: str, iid: str, body: dict, u=Depends(require("ADMIN", "GIUDICE", "ISPETTORE"))):
+    g = await get_gara(gid)
+    i = await db.iscritti.find_one({"id": iid, "gara_id": gid}, NOID)
+    if not i:
+        raise HTTPException(404, "Concorrente non trovato")
+    chiuso = bool(body.get("chiuso", True))
+    if u["role"] == "ISPETTORE":
+        if u.get("gara_id") != gid or i.get("settore") not in settori_of(u):
+            raise HTTPException(403, "Settore non assegnato")
+        if not chiuso:
+            raise HTTPException(403, "Solo il giudice può riaprire il cartellino")
+    else:
+        await gara_judge(gid, u)
+    await _check_open(g)
+    await db.iscritti.update_one({"id": iid}, {"$set": {"cartellino_chiuso": chiuso, "cartellino_da": u["username"], "cartellino_at": now()}})
+    return {"ok": True}
 
 
 # ---------- inviti
@@ -588,8 +644,12 @@ async def crea_invito(gid: str, body: InvitoIn, u=Depends(require("ADMIN", "GIUD
     isp = await db.users.find_one({"id": body.ispettore_id, "role": "ISPETTORE"}, NOID)
     if not isp or not isp.get("approvato", True):
         raise HTTPException(400, "Ispettore non approvato")
-    if await db.inviti.find_one({"gara_id": gid, "ispettore_id": isp["id"], "stato": {"$in": ["IN_ATTESA", "ACCETTATO"]}}):
-        raise HTTPException(400, "Ispettore già invitato a questa gara")
+    if await db.inviti.find_one({"gara_id": gid, "ispettore_id": isp["id"], "settore": body.settore, "stato": {"$in": ["IN_ATTESA", "ACCETTATO"]}}):
+        raise HTTPException(400, "Ispettore già invitato in questo settore")
+    if isp.get("gara_id") and isp["gara_id"] != gid:
+        other = await db.gare.find_one({"id": isp["gara_id"]}, NOID)
+        if other and other["stato"] != "Conclusa":
+            raise HTTPException(400, f"Ispettore già impegnato nella gara: {other['nome']}")
     inv = {"id": str(uuid.uuid4()), "gara_id": gid, "gara_nome": g["nome"], "ispettore_id": isp["id"], "ispettore_username": isp["username"],
            "ispettore_nome": isp.get("nome", ""), "settore": body.settore, "stato": "IN_ATTESA", "invitato_da": u["username"], "created_at": now()}
     await db.inviti.insert_one(dict(inv))
@@ -603,7 +663,10 @@ async def revoca_invito(iid: str, u=Depends(require("ADMIN", "GIUDICE"))):
         raise HTTPException(404, "Invito non trovato")
     await gara_judge(inv["gara_id"], u)
     await db.inviti.update_one({"id": iid}, {"$set": {"stato": "REVOCATO"}})
-    await db.users.update_one({"id": inv["ispettore_id"], "gara_id": inv["gara_id"]}, {"$set": {"gara_id": None, "settore": None}})
+    isp = await db.users.find_one({"id": inv["ispettore_id"], "gara_id": inv["gara_id"]}, NOID)
+    if isp:
+        rest = [x for x in settori_of(isp) if x != inv["settore"]]
+        await db.users.update_one({"id": isp["id"]}, {"$set": {"settore": ",".join(rest) or None, "gara_id": inv["gara_id"] if rest else None}})
     return {"ok": True}
 
 
@@ -615,9 +678,17 @@ async def rispondi_invito(iid: str, azione: str, u=Depends(require("ISPETTORE"))
     if azione == "rifiuta":
         await db.inviti.update_one({"id": iid}, {"$set": {"stato": "RIFIUTATO"}})
         return {"ok": True}
-    await db.inviti.update_many({"ispettore_id": u["id"], "stato": "ACCETTATO"}, {"$set": {"stato": "TERMINATO"}})
+    if u.get("gara_id") == inv["gara_id"]:
+        sett = sorted(set(settori_of(u) + [inv["settore"]]))
+    else:
+        if u.get("gara_id"):
+            other = await db.gare.find_one({"id": u["gara_id"]}, NOID)
+            if other and other["stato"] != "Conclusa":
+                raise HTTPException(400, f"Sei già impegnato nella gara: {other['nome']}")
+        await db.inviti.update_many({"ispettore_id": u["id"], "stato": "ACCETTATO"}, {"$set": {"stato": "TERMINATO"}})
+        sett = [inv["settore"]]
     await db.inviti.update_one({"id": iid}, {"$set": {"stato": "ACCETTATO", "accettato_at": now()}})
-    await db.users.update_one({"id": u["id"]}, {"$set": {"gara_id": inv["gara_id"], "settore": inv["settore"]}})
+    await db.users.update_one({"id": u["id"]}, {"$set": {"gara_id": inv["gara_id"], "settore": ",".join(sett)}})
     return {"ok": True}
 
 
@@ -628,10 +699,11 @@ async def isp_live(u=Depends(require("ISPETTORE"))):
     if not u.get("gara_id"):
         return {"gara": None, "inviti": inviti}
     g = await get_gara(u["gara_id"])
-    isc = await db.iscritti.find({"gara_id": g["id"], "settore": u["settore"]}, NOID).sort("picchetto", 1).to_list(200)
-    cat = await db.catture.find({"gara_id": g["id"], "settore": u["settore"]}, NOID).sort("created_at", -1).to_list(2000)
+    sett = settori_of(u)
+    isc = await db.iscritti.find({"gara_id": g["id"], "settore": {"$in": sett}}, NOID).sort("picchetto", 1).to_list(400)
+    cat = await db.catture.find({"gara_id": g["id"], "settore": {"$in": sett}}, NOID).sort("created_at", -1).to_list(2000)
     msgs = await db.messaggi.find({"gara_id": g["id"], "$or": [{"a": "ALL"}, {"a": u["username"]}, {"da": u["username"]}]}, NOID).sort("created_at", 1).to_list(1000)
-    return {"gara": await gara_summary(g), "settore": u["settore"], "iscritti": isc, "catture": cat, "messaggi": msgs, "inviti": inviti}
+    return {"gara": await gara_summary(g), "settore": u["settore"], "settori": sett, "iscritti": isc, "catture": cat, "messaggi": msgs, "inviti": inviti}
 
 
 # ---------- chat

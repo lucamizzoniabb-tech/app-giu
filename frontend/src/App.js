@@ -9,6 +9,7 @@ import Admin from "@/pages/Admin";
 import GiudiceList from "@/pages/GiudiceList";
 import Giudice from "@/pages/Giudice";
 import Ispettore from "@/pages/Ispettore";
+import Schermo from "@/pages/Schermo";
 
 function Protected({ roles, children }) {
   const { user } = useAuth();
@@ -26,6 +27,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/gara/:id" element={<GaraPublic />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/schermo/:id" element={<Schermo />} />
           <Route path="/admin" element={<Protected roles={["ADMIN"]}><Admin /></Protected>} />
           <Route path="/giudice" element={<Protected roles={["ADMIN", "GIUDICE"]}><GiudiceList /></Protected>} />
           <Route path="/giudice/:id" element={<Protected roles={["ADMIN", "GIUDICE"]}><Giudice /></Protected>} />

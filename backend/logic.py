@@ -152,7 +152,7 @@ def build_classifica(gara, iscritti, catture, specie_map):
             tot_w += 0 if surf else float(c.get("peso") or 0)
         rows.append({"id": i["id"], "nome": f"{i['nome']} {i['cognome']}", "societa": i.get("societa", ""), "gruppo": i.get("gruppo", ""),
                      "settore": i["settore"], "zona": i.get("zona"), "picchetto": i["picchetto"], "esterno": i.get("esterno", False),
-                     "colore": i.get("colore"), "catture": cs, "n_pesci": len(cs), "punti": round(tot_p, 2), "peso": round(tot_w, 2),
+                     "colore": i.get("colore"), "cartellino_chiuso": i.get("cartellino_chiuso", False), "catture": cs, "n_pesci": len(cs), "punti": round(tot_p, 2), "peso": round(tot_w, 2),
                      "tot": round(tot_p + tot_w, 2)})
     settori = []
     tecnici = {s["lettera"] for s in gara.get("settori", []) if s.get("tecnico")}

@@ -11,7 +11,8 @@ export const IscrittiPanel = ({ gara, onChange }) => {
   const [f, setF] = useState(EMPTY);
   const [csv, setCsv] = useState("");
   const [busy, setBusy] = useState(false);
-  const locked = gara.stato === "Conclusa";
+  const avviata = (gara.timer?.stato || "FERMO") !== "FERMO";
+  const locked = gara.stato === "Conclusa" || avviata;
   const load = () => get(`/gare/${gara.id}/iscritti`).then(setList).catch(() => {});
   useEffect(() => { load(); }, [gara.id]); // eslint-disable-line
 

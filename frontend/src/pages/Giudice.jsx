@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { ArrowLeft, Lock, Bell } from "lucide-react";
+import { ArrowLeft, Lock, Bell, Monitor } from "lucide-react";
 import { toast } from "sonner";
 import { TopBar, StatoChip } from "@/components/TopBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -55,6 +55,8 @@ export default function Giudice() {
   const { gara: g, classifica, catture, messaggi, ispettori } = data;
   const pending = catture.filter((c) => c.stato === "IN_ATTESA").length;
   const locked = g.stato === "Conclusa";
+  const avviata = (g.timer?.stato || "FERMO") !== "FERMO";
+  const setLock = locked || avviata;
   const patch = async (body) => { try { await api.patch(`/gare/${id}`, body); reload(); } catch (e) { toast.error(errMsg(e)); } };
   const chiudi = async () => {
     if (!window.confirm("Chiudere la gara? Le misure verranno bloccate e la classifica diventerà definitiva.")) return;
@@ -72,21 +74,22 @@ export default function Giudice() {
             <h1 className="mt-1 text-2xl font-extrabold sm:text-3xl" data-testid="giudice-gara-nome">{g.nome}</h1>
             <div className="text-sm text-slate-500">{fmtDate(g.data)} · {g.luogo}</div>
           </div>
+          <button data-testid="schermo-btn" onClick={() => window.open(`/schermo/${id}`, `schermo-${id}`, "popup,width=1600,height=900")} className="btn btn-outline"><Monitor size={15} />Schermo classifica</button>
           {!locked && <button data-testid="chiudi-gara-btn" onClick={chiudi} className="btn btn-outline"><Lock size={15} />Chiudi gara</button>}
         </div>
         <div className="mt-4 flex flex-wrap items-end gap-2">
           <div><span className="lbl">Specialità</span>
-            <select data-testid="specialita-select" disabled={locked} className="fld w-48" value={g.specialita} onChange={(e) => patch({ specialita: e.target.value })}>{SPECIALITA.map((s) => <option key={s}>{s}</option>)}</select></div>
+            <select data-testid="specialita-select" disabled={setLock} className="fld w-48" value={g.specialita} onChange={(e) => patch({ specialita: e.target.value })}>{SPECIALITA.map((s) => <option key={s}>{s}</option>)}</select></div>
           <div><span className="lbl">Tipo gara</span>
-            <select data-testid="tipo-select" disabled={locked} className="fld w-40" value={g.tipo} onChange={(e) => patch({ tipo: e.target.value })}>{TIPI.map((s) => <option key={s}>{s}</option>)}</select></div>
-          <NumSet label="Durata min" k="durata_min" g={g} patch={patch} locked={locked} />
-          {g.specialita === "Surf Casting" && <NumSet label="Bonus pesce" k="bonus_pesce" g={g} patch={patch} locked={locked} />}
-          {g.specialita === "Surf Casting" && <NumSet label="Preda tecnica" k="preda_tecnica" g={g} patch={patch} locked={locked} />}
+            <select data-testid="tipo-select" disabled={setLock} className="fld w-40" value={g.tipo} onChange={(e) => patch({ tipo: e.target.value })}>{TIPI.map((s) => <option key={s}>{s}</option>)}</select></div>
+          <NumSet label="Durata min" k="durata_min" g={g} patch={patch} locked={setLock} />
+          {g.specialita === "Surf Casting" && <NumSet label="Bonus pesce" k="bonus_pesce" g={g} patch={patch} locked={setLock} />}
+          {g.specialita === "Surf Casting" && <NumSet label="Preda tecnica" k="preda_tecnica" g={g} patch={patch} locked={setLock} />}
           <div className="num rounded-md border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs font-bold" data-testid="gara-badge">
             {g.specialita} | {g.tipo} | {g.n_iscritti} iscritti | {g.settori_label || g.settori_preview || "—"}
           </div>
         </div>
-        <div className="mt-4"><GaraTimer gara={g} controls={!locked} onChange={reload} /></div>
+        <div className="mt-4"><GaraTimer gara={g} controls={!locked} isAdmin={user.role === "ADMIN"} onChange={reload} /></div>
         <Tabs value={tab} onValueChange={setTab} className="mt-6">
           <TabsList className="tabs-list !bg-transparent">
             {[["iscritti", "Iscritti"], ["campo", "Campo gara"], ["ispettori", "Ispettori"], ["pesa", "Pesa Live"], ["validazione", "Validazione"], ["classifica", "Classifica"], ["prede", "Prede"], ["chat", "Chat"]].map(([k, t]) => (
