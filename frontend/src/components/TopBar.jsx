@@ -1,6 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut, LayoutDashboard, Fish } from "lucide-react";
 import { useAuth, homeFor } from "@/context/AuthContext";
+import { InstallaApp } from "@/components/InstallaApp";
 
 export const TopBar = ({ children }) => {
   const { user, logout } = useAuth();
@@ -13,6 +14,7 @@ export const TopBar = ({ children }) => {
           <span className="font-display text-[15px] font-extrabold leading-none">Gare Ufficiali<span className="text-red-600"> Live</span></span>
         </Link>
         <div className="ml-auto flex items-center gap-2">
+          <InstallaApp />
           {children}
           {user ? (
             <>
