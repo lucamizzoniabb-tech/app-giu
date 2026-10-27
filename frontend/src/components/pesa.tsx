@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Platform, Pressable, StyleSheet, Text, View } from "react-native";
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import * as Haptics from "expo-haptics";
 import { colors, radius, spacing } from "@/src/theme";
 import { Btn, Card, Chip, Empty, Icon, MISURA_STATO, Segmented, Select } from "@/src/ui";
@@ -7,9 +8,9 @@ import { api, errMsg } from "@/src/api";
 import { fmt, puntiPreview } from "@/src/constants";
 import { useFeedback } from "@/src/feedback";
 
-const KEYS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "C", "0", "del"];
+const KEYS = ["1", "2", "3", "del", "4", "5", "6", "C", "7", "8", "9", "0"];
 
-export function NumPad({ value, onChange, onOk, max = 4, busy, testID }: any) {
+export function NumPad({ value, onChange, max = 4, testID }: any) {
   const press = (k: string) => {
     if (Platform.OS !== "web") Haptics.selectionAsync();
     if (k === "del") return onChange(value.slice(0, -1));
@@ -18,24 +19,22 @@ export function NumPad({ value, onChange, onOk, max = 4, busy, testID }: any) {
     onChange(value === "0" ? k : value + k);
   };
   return (
-    <View style={s.pad} testID={testID}>
-      <View style={s.grid}>
-        {KEYS.map((k) => (
-          <Pressable key={k} testID={`${testID}-${k}`} onPress={() => press(k)} style={({ pressed }) => [s.key, pressed && { transform: [{ scale: 0.95 }], backgroundColor: colors.surfaceTertiary }]}>
-            {k === "del" ? <Icon name="delete" size={22} /> : <Text style={[s.keyT, k === "C" && { color: colors.errorStrong }]}>{k}</Text>}
-          </Pressable>
-        ))}
-      </View>
-      <Btn variant="success" icon="check" title="Invia" onPress={onOk} busy={busy} testID={`${testID}-ok`} style={{ height: 54 }} />
+    <View style={s.grid} testID={testID}>
+      {KEYS.map((k) => (
+        <Pressable key={k} testID={`${testID}-${k}`} onPress={() => press(k)} style={({ pressed }) => [s.key, pressed && { backgroundColor: colors.border }]}>
+          {k === "del" ? <Icon name="delete" size={18} /> : <Text style={[s.keyT, k === "C" && { color: colors.errorStrong }]}>{k}</Text>}
+        </Pressable>
+      ))}
     </View>
   );
 }
 
 function AddForm({ gara, iscritto, specie, surf, onDone }: any) {
   const { toast } = useFeedback();
+  const insets = useSafeAreaInsets();
   const [sp, setSp] = useState("");
   const [val, setVal] = useState("");
-  const [pad, setPad] = useState(false);
+  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const spObj = specie.find((x: any) => x.name === sp);
   const prev = surf ? puntiPreview(spObj, val, gara) : null;
@@ -46,21 +45,43 @@ function AddForm({ gara, iscritto, specie, surf, onDone }: any) {
     setBusy(true);
     try {
       await api.post(`/gare/${gara.id}/catture`, { iscritto_id: iscritto.id, specie: surf ? sp : "Pesata", cm: surf ? Number(val) : null, peso: surf ? null : Number(val) });
-      setVal(""); setPad(false); onDone();
+      setVal(""); setOpen(false); onDone();
     } catch (er) { toast(errMsg(er), "error"); }
     setBusy(false);
   };
   return (
-    <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-      <View style={{ flexDirection: "row", gap: spacing.sm }}>
-        {surf && <Select style={{ flex: 1 }} testID={`pesa-specie-${pk}`} placeholder="Specie" label="" value={sp} onChange={(v) => { setSp(v); setPad(true); }} options={specie.map((x: any) => ({ value: x.name, label: `${x.name} (${x.min})` }))} />}
-        <Pressable testID={`pesa-${surf ? "cm" : "peso"}-${pk}`} onPress={() => setPad(!pad)} style={[s.val, surf ? { width: 96 } : { flex: 1 }, pad && { borderColor: colors.brand, borderWidth: 2 }]}>
-          {val ? <Text style={s.valT}>{val}<Text style={s.unit}> {surf ? "cm" : "g"}</Text></Text> : <Text style={s.unit}>{surf ? "cm" : "peso g"}</Text>}
-        </Pressable>
-      </View>
-      {prev && <Text testID={`pesa-preview-${pk}`} style={[s.prev, { color: prev.sotto ? colors.errorStrong : colors.successStrong }]}>{prev.sotto ? `Sotto misura (min ${spObj.min} cm) · preda tecnica ${prev.p} pt` : `${prev.p} punti`}</Text>}
-      {pad && <NumPad value={val} onChange={setVal} max={surf ? 3 : 6} onOk={submit} busy={busy} testID={`numpad-${pk}`} />}
-    </View>
+    <>
+      <Btn small variant="outline" icon="plus" title={surf ? "Inserisci misura" : "Inserisci peso"} onPress={() => setOpen(true)} testID={`pesa-add-${pk}`} style={{ marginTop: spacing.sm }} />
+      <Modal visible={open} transparent animationType="slide" onRequestClose={() => setOpen(false)}>
+        <Pressable style={s.backdrop} onPress={() => setOpen(false)} testID={`pesa-sheet-close-${pk}`} />
+        <View style={[s.sheet, { paddingBottom: insets.bottom + spacing.sm }]} testID={`pesa-sheet-${pk}`}>
+          <View style={s.sheetHead}>
+            <Text style={s.sheetPk}>{pk}</Text>
+            <Text style={[s.name, { flex: 1 }]} numberOfLines={1}>{iscritto.nome}</Text>
+            <Pressable onPress={() => setOpen(false)} hitSlop={10} testID={`pesa-sheet-x-${pk}`}><Icon name="x" size={20} color={colors.muted} /></Pressable>
+          </View>
+          {surf && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} style={{ flexGrow: 0 }}>
+              {specie.map((x: any, i: number) => {
+                const on = x.name === sp;
+                return (
+                  <Pressable key={x.name} testID={`pesa-specie-${pk}-${i}`} onPress={() => setSp(x.name)} style={[s.spChip, on && { backgroundColor: colors.onSurface, borderColor: colors.onSurface }]}>
+                    <Text style={[s.spT, on && { color: colors.surface }]}>{x.name} <Text style={{ opacity: 0.6 }}>{x.min}</Text></Text>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+          )}
+          <View style={s.display}>
+            <Text style={s.valT} testID={`pesa-${surf ? "cm" : "peso"}-${pk}`}>{val || "0"}<Text style={s.unit}> {surf ? "cm" : "g"}</Text></Text>
+            {prev ? <Text testID={`pesa-preview-${pk}`} style={[s.prev, { color: prev.sotto ? colors.errorStrong : colors.successStrong }]} numberOfLines={1}>{prev.sotto ? `Sotto misura · ${prev.p} pt` : `${prev.p} punti`}</Text>
+              : <Text style={s.prev2} numberOfLines={1}>{surf ? (sp || "Scegli specie") : ""}</Text>}
+          </View>
+          <NumPad value={val} onChange={setVal} max={surf ? 3 : 6} testID={`numpad-${pk}`} />
+          <Btn variant="success" icon="check" title="Invia" onPress={submit} busy={busy} testID={`numpad-${pk}-ok`} />
+        </View>
+      </Modal>
+    </>
   );
 }
 
@@ -142,14 +163,20 @@ export function PesaLive({ gara, classifica, specie, onChange }: any) {
 }
 
 const s = StyleSheet.create({
-  pad: { backgroundColor: colors.surfaceTertiary, borderRadius: radius.md, padding: 6, gap: 6 },
   grid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  key: { width: "31.8%", flexGrow: 1, height: 56, borderRadius: radius.sm + 2, backgroundColor: colors.surface, alignItems: "center", justifyContent: "center", shadowColor: "#000", shadowOpacity: 0.05, shadowRadius: 2, shadowOffset: { width: 0, height: 1 }, elevation: 1 },
-  keyT: { fontSize: 24, fontWeight: "800", color: colors.onSurface },
-  val: { height: 46, borderWidth: 1, borderColor: colors.borderStrong, borderRadius: radius.md - 2, paddingHorizontal: spacing.md, justifyContent: "center", alignSelf: "flex-end" },
-  valT: { fontSize: 18, fontWeight: "800", color: colors.onSurface },
+  key: { width: "23%", flexGrow: 1, height: 44, borderRadius: radius.sm, backgroundColor: colors.surfaceTertiary, alignItems: "center", justifyContent: "center" },
+  keyT: { fontSize: 20, fontWeight: "700", color: colors.onSurface },
+  backdrop: { flex: 1, backgroundColor: colors.backdrop },
+  sheet: { backgroundColor: colors.surface, borderTopLeftRadius: radius.lg, borderTopRightRadius: radius.lg, paddingHorizontal: spacing.lg, paddingTop: spacing.md, gap: spacing.sm },
+  sheetHead: { flexDirection: "row", alignItems: "center", gap: spacing.sm },
+  sheetPk: { fontSize: 18, fontWeight: "900", color: colors.surface, backgroundColor: colors.onSurface, borderRadius: radius.sm, paddingHorizontal: 8, paddingVertical: 2, overflow: "hidden" },
+  spChip: { height: 34, paddingHorizontal: spacing.md, borderRadius: radius.pill, borderWidth: 1, borderColor: colors.borderStrong, justifyContent: "center", flexShrink: 0 },
+  spT: { fontSize: 13, fontWeight: "600", color: colors.onSurface },
+  display: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: spacing.sm, height: 48, paddingHorizontal: spacing.md, borderRadius: radius.md - 2, borderWidth: 2, borderColor: colors.brand },
+  valT: { fontSize: 24, fontWeight: "800", color: colors.onSurface, fontVariant: ["tabular-nums"] },
   unit: { fontSize: 13, color: colors.muted, fontWeight: "400" },
-  prev: { fontSize: 12, fontWeight: "700" },
+  prev: { fontSize: 13, fontWeight: "700", flexShrink: 1 },
+  prev2: { fontSize: 13, color: colors.muted, flexShrink: 1 },
   pk: { fontSize: 24, fontWeight: "800", color: colors.onSurface, width: 40, fontVariant: ["tabular-nums"] },
   name: { fontSize: 15, fontWeight: "700", color: colors.onSurface, flexShrink: 1 },
   sub: { fontSize: 12, color: colors.muted },
