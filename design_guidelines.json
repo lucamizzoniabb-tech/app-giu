@@ -1,0 +1,151 @@
+{
+  "app_name": "Gare Ufficiali Live",
+  "personality": "1 iOS-Native Clean",
+  "personality_one_liner": "A highly functional, data-dense, and highly readable sports tracking and administration tool.",
+  "color": {
+    "surface": "#FFFFFF",
+    "onSurface": "#0F172A",
+    "surfaceSecondary": "#F8FAFC",
+    "onSurfaceSecondary": "#334155",
+    "surfaceTertiary": "#F1F5F9",
+    "onSurfaceTertiary": "#475569",
+    "surfaceInverse": "#0F3D56",
+    "onSurfaceInverse": "#FFFFFF",
+    "brand": "#0F3D56",
+    "brandPrimary": "#0F3D56",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#E63946",
+    "onBrandSecondary": "#FFFFFF",
+    "brandTertiary": "#E0E7FF",
+    "onBrandTertiary": "#0F3D56",
+    "success": "#10B981",
+    "onSuccess": "#FFFFFF",
+    "warning": "#F59E0B",
+    "onWarning": "#FFFFFF",
+    "error": "#E63946",
+    "onError": "#FFFFFF",
+    "info": "#0EA5E9",
+    "onInfo": "#FFFFFF",
+    "border": "#E2E8F0",
+    "borderStrong": "#CBD5E1",
+    "divider": "#F1F5F9",
+    "muted": "#64748B",
+    "technicalSector": "#EAB308",
+    "statusViolet": "#8B5CF6",
+    "statusSlate": "#64748B"
+  },
+  "typography": {
+    "displayFontFamily": "System",
+    "textFontFamily": "System",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Generous padding around structural containers, tight spacing inside data rows. Thumb zone action buttons at bottom.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": "1",
+  "navigation": "bottom_tabs",
+  "icon_set": "Ionicons",
+  "glassmorphism": {
+    "enabled": "true",
+    "do's": [
+      "Use on sticky headers above scrolling lists",
+      "Use on bottom tab bar",
+      "Use on the floating chat button (FAB) background"
+    ],
+    "dont's": [
+      "Do not use on data table rows or standard list items",
+      "Do not use on numpad keys"
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "screens": [
+    {
+      "name": "Competitions List (Home)",
+      "purpose": "Public view of upcoming, live, and past competitions with filtering.",
+      "states": {
+        "loading": "Centered spinner",
+        "empty": "Empty clipboard icon with 'Nessuna gara trovata'",
+        "error": "Error message with retry button"
+      },
+      "layout": "Sticky segmented control for filters (Live, Today, Past). Scrollable list of match cards. Each card uses high data density: clear title, date, status chip (sky/violet/red/slate), and a prominent red 'Live' banner if active. Thumb zone CTA for Login/Admin."
+    },
+    {
+      "name": "Live Leaderboard",
+      "purpose": "Real-time ranking display split by categories.",
+      "states": {
+        "loading": "Skeleton rows",
+        "empty": "Empty clipboard with 'Nessuna classifica disponibile'",
+        "error": "Error message with retry button"
+      },
+      "layout": "Top sticky segmented control (Sectors / Absolute / Clubs / Teams). Expandable row pattern for complex competitor data to preserve viewport space. Highlight first place in emerald, pending in amber."
+    },
+    {
+      "name": "Judge Console",
+      "purpose": "Command center for the judge to manage the competition.",
+      "states": {
+        "loading": "Centered spinner",
+        "empty": "Illustration with 'Nessun iscritto da validare'",
+        "error": "Error message with retry button"
+      },
+      "layout": "Fixed timer controls (Start/Pause/Stop) at the top. Scrollable list of entries. Tapping an entry opens a bottom sheet with a Custom Numpad (large touch targets, no standard QWERTY) for weigh-in. Validation buttons (Approve in emerald/Reject in red) sticky at the bottom."
+    },
+    {
+      "name": "Inspector Screen",
+      "purpose": "Field data entry for inspectors.",
+      "states": {
+        "loading": "Centered spinner",
+        "empty": "Icon with 'Nessun settore assegnato'",
+        "error": "Error message with retry button"
+      },
+      "layout": "List of assigned pegs/sectors. Tapping a peg opens the Custom Numpad sheet for fast measurement entry. Floating action button for Chat."
+    }
+  ],
+  "images": {
+    "hero_fishing": {
+      "url": "https://images.unsplash.com/photo-1583249598754-b7a2f59651fb?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NTYxOTF8MHwxfHNlYXJjaHwyfHxzcG9ydCUyMGZpc2hpbmclMjBjb21wZXRpdGlvbiUyMGxha2V8ZW58MHx8fHwxNzkzMDY5NjM0fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Sport fishing competition lake view"
+    },
+    "empty_clipboard": {
+      "url": "https://images.unsplash.com/photo-1651760680066-db9d32bd0357?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Nzd8MHwxfHNlYXJjaHwxfHxlbXB0eSUyMGNsaXBib2FyZCUyMGRhdGF8ZW58MHx8fHwxNzkzMDY5NjM0fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Empty clipboard"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly adhere to the specific color semantics defined: #0F3D56 for primary actions/brand, #E63946 for the Live accent, Emerald for success/1st place, Amber for pending, Yellow for technical sectors.",
+    "Data Density: Ensure lists and tables use space efficiently. Implement expandable list items for the leaderboard to show granular details without cluttering the main view.",
+    "Input & Validation: The Judge and Inspector screens MUST use a custom-built numerical pad component inside a bottom sheet for weigh-in and measurement. DO NOT trigger the native QWERTY keyboard for numeric inputs to avoid validation errors and improve speed.",
+    "Navigation: Keep primary CTAs (Submit, Validate) sticky at the bottom above the home indicator, especially inside the numpad bottom sheet.",
+    "Ensure all data text is highly readable. Use monospaced fonts (System-Mono equivalent) for numerical scores, weights, and timers if possible.",
+    "Apply the gradient-to-dark scrim pattern if placing any text over the `hero_fishing` image."
+  ]
+}

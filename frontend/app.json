@@ -1,0 +1,35 @@
+{
+  "expo": {
+    "name": "Gare Ufficiali Live",
+    "slug": "gare-ufficiali-live",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "gareufficialilive",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.placeholder.appid",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Scegli la locandina della gara dalla galleria"
+      }
+    },
+    "android": {
+      "package": "com.placeholder.appid",
+      "edgeToEdgeEnabled": true
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      "expo-web-browser",
+      "@react-native-vector-icons/lucide",
+      "expo-sharing"
+    ],
+    "experiments": {
+      "typedRoutes": false
+    }
+  }
+}
